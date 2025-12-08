@@ -72,13 +72,21 @@ export default function AddProductPage() {
           })) : [{ name: '', description: '', stock: '', priceModifier: '' }],
           images: []
         });
+        
+        // Load existing images for preview
         const previews = [];
-        if (data.imageId) previews.push(`/v1/file-storage/get/${data.imageId}`);
+        const allImageIds = [];
+        if (data.imageId) allImageIds.push(data.imageId);
         if (Array.isArray(data.imageIds)) {
           data.imageIds.forEach(imgId => {
-            if (imgId) previews.push(`/v1/file-storage/get/${imgId}`);
+            if (imgId && !allImageIds.includes(imgId)) {
+              allImageIds.push(imgId);
+            }
           });
         }
+        allImageIds.forEach(imgId => {
+          if (imgId) previews.push(`/v1/file-storage/get/${imgId}`);
+        });
         setImagePreviews(previews);
       } catch (e) {
         console.error('Error loading product:', e);
@@ -144,12 +152,13 @@ export default function AddProductPage() {
     const files = Array.from(e.target.files);
     
     if (files.length + imagePreviews.length > 10) {
-      alert('Maximum 10 images');
+      alert('Maximum 10 images/videos');
       return;
     }
 
     files.forEach(file => {
-      if (file.type.startsWith('image/')) {
+      // Accept both images and videos
+      if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
         const reader = new FileReader();
         reader.onloadend = () => {
           setImagePreviews(prev => [...prev, reader.result]);
@@ -159,6 +168,8 @@ export default function AddProductPage() {
           }));
         };
         reader.readAsDataURL(file);
+      } else {
+        alert(`File ${file.name} is not an image or video. Please select image or video files only.`);
       }
     });
   };
@@ -386,7 +397,7 @@ export default function AddProductPage() {
                 {formData.sizes.map((size, index) => (
                   <div key={index} className="border rounded p-3 mb-3" style={{background: '#f8f9fa'}}>
                     <div className="d-flex justify-content-between align-items-center mb-2">
-                      <strong>Biến thể #{index + 1}</strong>
+                      <strong>Variant #{index + 1}</strong>
                       {formData.sizes.length > 1 && (
                         <button
                           type="button"
@@ -475,15 +486,15 @@ export default function AddProductPage() {
               </div>
               <div className="card-body">
                 <div className="mb-3">
-                  <label className="form-label">Choose images{isEditMode ? '' : ' '}<span style={{color: 'red'}}>*</span></label>
+                  <label className="form-label">Choose images/videos{isEditMode ? '' : ' '}<span style={{color: 'red'}}>*</span></label>
                   <input
                     type="file"
                     className="form-control"
                     onChange={handleImageChange}
-                    accept="image/*"
+                    accept="image/*,video/*"
                     multiple
                   />
-                  <small className="text-muted">Up to 10 images</small>
+                  <small className="text-muted">Up to 10 images/videos (first image will be the main image)</small>
                 </div>
 
                 {errors.images && (
@@ -492,34 +503,63 @@ export default function AddProductPage() {
 
                 {imagePreviews.length > 0 && (
                   <div className="row">
-                    {imagePreviews.map((preview, index) => (
-                      <div key={index} className="col-md-3 mb-3">
-                        <div className="position-relative">
-                          <img
-                            src={preview}
-                            alt={`Preview ${index + 1}`}
-                            style={{
-                              width: '100%',
-                              height: '150px',
-                              objectFit: 'cover',
-                              borderRadius: '8px'
-                            }}
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-danger"
-                            style={{
-                              position: 'absolute',
-                              top: '5px',
-                              right: '5px'
-                            }}
-                            onClick={() => removeImage(index)}
-                          >
-                            <i className="fas fa-times"></i>
-                          </button>
+                    {imagePreviews.map((preview, index) => {
+                      const isVideo = preview.includes('video') || formData.images[index]?.type?.startsWith('video/');
+                      return (
+                        <div key={index} className="col-md-3 mb-3">
+                          <div className="position-relative">
+                            {isVideo ? (
+                              <video
+                                src={preview}
+                                style={{
+                                  width: '100%',
+                                  aspectRatio: '1 / 1',
+                                  objectFit: 'cover',
+                                  borderRadius: '8px'
+                                }}
+                                muted
+                              />
+                            ) : (
+                              <img
+                                src={preview}
+                                alt={`Preview ${index + 1}`}
+                                style={{
+                                  width: '100%',
+                                  aspectRatio: '1 / 1',
+                                  objectFit: 'cover',
+                                  borderRadius: '8px'
+                                }}
+                              />
+                            )}
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-danger"
+                              style={{
+                                position: 'absolute',
+                                top: '5px',
+                                right: '5px'
+                              }}
+                              onClick={() => removeImage(index)}
+                            >
+                              <i className="fas fa-times"></i>
+                            </button>
+                            {index === 0 && (
+                              <span 
+                                className="badge bg-primary"
+                                style={{
+                                  position: 'absolute',
+                                  bottom: '5px',
+                                  left: '5px',
+                                  fontSize: '0.7rem'
+                                }}
+                              >
+                                Main
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

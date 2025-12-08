@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import ReactDOM from "react-dom";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import Cookies from "js-cookie";
 import { getCart, getAllAddress } from "../../../api/user.js";
 import { fetchImageById } from "../../../api/image.js";
@@ -38,6 +38,7 @@ export function Cart() {
   const lastClickTime = useRef({});
 
   const navigate = useNavigate();
+  const location = useLocation();
   const token = Cookies.get("accessToken");
 
   const toast = (icon, title) =>
@@ -98,6 +99,18 @@ export function Cart() {
         const data = await getCart();
         console.log("Cart loaded - items:", JSON.stringify(data?.items, null, 2));
         setCart(data);
+        
+        // Auto-select product if coming from Buy Now
+        if (location.state?.selectProduct) {
+          const { productId, sizeId } = location.state.selectProduct;
+          const key = `${productId}:${sizeId || 'no-size'}`;
+          // Wait a bit for items to be processed
+          setTimeout(() => {
+            setSelected(new Set([key]));
+          }, 100);
+          // Clear the state to prevent re-selection on refresh
+          window.history.replaceState({}, document.title);
+        }
       } catch {
         setError("Failed to fetch cart data. Please try again later.");
         setCart({ items: [] });
@@ -110,7 +123,7 @@ export function Cart() {
         setLoading(false);
       }
     })();
-  }, [token, navigate]);
+  }, [token, navigate, location.state]);
 
   useEffect(() => {
     if (!token) return;

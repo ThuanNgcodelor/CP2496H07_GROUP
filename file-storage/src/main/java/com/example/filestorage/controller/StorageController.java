@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/v1/file-storage")
 @RequiredArgsConstructor
@@ -18,6 +20,13 @@ public class StorageController {
     public ResponseEntity<String> uploadImageToFIleSystem(@RequestPart("image") MultipartFile file) {
         return ResponseEntity.ok()
                 .body(fileService.uploadImageToFileSystem(file));
+    }
+
+    @PostMapping("/upload-multiple")
+    public ResponseEntity<List<String>> uploadMultipleImagesToFileSystem(
+            @RequestPart("images") MultipartFile[] files) {
+        List<String> uploadedIds = fileService.uploadMultipleImagesToFileSystem(List.of(files));
+        return ResponseEntity.ok().body(uploadedIds);
     }
 
     @GetMapping("/download/{id}")

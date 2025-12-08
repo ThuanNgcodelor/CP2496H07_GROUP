@@ -14,7 +14,8 @@ public class ProductDto {
     private double price;
     private double originalPrice;
     private double discountPercent;
-    private String imageId;
+    private String imageId; // Main image (backward compatibility)
+    private List<String> imageIds; // Multiple images/videos
     private String status;
     private String categoryName;
     private String categoryId;

@@ -239,7 +239,6 @@ const SearchProduct = () => {
     setSortKey("Trending");
   };
 
-  // UI helpers for funnel chips
   const activeChips = useMemo(() => {
     const chips = [];
     if (debouncedQuery) chips.push({ k: "q", label: `Search: "${debouncedQuery}"`, clear: () => setQuery("") });
@@ -257,57 +256,56 @@ const SearchProduct = () => {
   if (loading) return <div className="text-center">Loading products...</div>;
 
   return (
-
-    <section className="product-area section-space">
+<>
+    <section className="shop-top-bar-area">
       <div className="container">
-        <section className="shop-top-bar-area">
-          <div className="container">
-            <div className="shop-top-bar">
-              <select className="select-shoing" value={sortKey} onChange={(e) => setSortKey(e.target.value)}>
-                <option value="Price: low to high">Price: Low to High</option>
-                <option value="Price: high to low">Price: High to Low</option>
-              </select>
+        <div className="shop-top-bar">
+          <select className="select-shoing" value={sortKey} onChange={(e) => setSortKey(e.target.value)}>
+            <option value="Price: low to high">Price: Low to High</option>
+            <option value="Price: high to low">Price: High to Low</option>
+          </select>
 
-              <div className="select-on-sale d-flex d-md-none">
-                <h5>On Sale :</h5>
-                <select className="select-on-sale-form" value={onlyDiscounted ? "Yes" : "No"} onChange={(e) => setOnlyDiscounted(e.target.value === "Yes")}>
-                  <option value="Yes">Yes</option>
-                  <option value="No">No</option>
-                </select>
-              </div>
+          <div className="select-on-sale d-flex d-md-none">
+            <h5>On Sale :</h5>
+            <select className="select-on-sale-form" value={onlyDiscounted ? "Yes" : "No"} onChange={(e) => setOnlyDiscounted(e.target.value === "Yes")}>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
 
-              <div className="select-price-range">
-                <h4 className="title">Pricing</h4>
-                <div className="select-price-range-slider">
-                  <input type="range" className="slider-range" 
-                    min={priceRange.min} max={priceRange.max}
-                    value={priceMin || priceRange.min}
-                    onChange={(e) => setPriceMin(e.target.value)}
-                  />
-                  <input type="range" className="slider-range"
-                    min={priceRange.min} max={priceRange.max}
-                    value={priceMax || priceRange.max}
-                    onChange={(e) => setPriceMax(e.target.value)}
-                  />
-                  <div className="slider-labels">
-                    <span id="slider-range-value1">${Number(priceMin || priceRange.min).toLocaleString()}</span>
-                    <span>-</span>
-                    <span id="slider-range-value2">${Number(priceMax || priceRange.max).toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="select-on-sale d-none d-md-flex">
-                <h5>On Sale :</h5>
-                <select className="select-on-sale-form" value={onlyDiscounted ? "Yes" : "No"} onChange={(e) => setOnlyDiscounted(e.target.value === "Yes")}>
-                  <option value="Yes">Yes</option>
-                  <option value="No">No</option>
-                </select>
+          <div className="select-price-range">
+            <h4 className="title">Pricing</h4>
+            <div className="select-price-range-slider">
+              <input type="range" className="slider-range" 
+                min={priceRange.min} max={priceRange.max}
+                value={priceMin || priceRange.min}
+                onChange={(e) => setPriceMin(e.target.value)}
+              />
+              <input type="range" className="slider-range"
+                min={priceRange.min} max={priceRange.max}
+                value={priceMax || priceRange.max}
+                onChange={(e) => setPriceMax(e.target.value)}
+              />
+              <div className="slider-labels">
+                <span id="slider-range-value1">${Number(priceMin || priceRange.min).toLocaleString()}</span>
+                <span>-</span>
+                <span id="slider-range-value2">${Number(priceMax || priceRange.max).toLocaleString()}</span>
               </div>
             </div>
           </div>
-          <h6 className="visually-hidden">Shop Top Bar Area</h6>
-        </section>
+
+          <div className="select-on-sale d-none d-md-flex">
+            <h5>On Sale :</h5>
+            <select className="select-on-sale-form" value={onlyDiscounted ? "Yes" : "No"} onChange={(e) => setOnlyDiscounted(e.target.value === "Yes")}>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+    <div className="container">
+      
 
         {/* --- Grid --- */}
         <div className="row mb-n6" style={{ marginTop: '40px' }}>
@@ -318,7 +316,7 @@ const SearchProduct = () => {
           )}
 
           {pageItems.map((product) => (
-            <div className="col-sm-6 col-lg-4 mb-6" key={product.id}>
+            <div className="col-sm-6 col-lg-3 mb-6" key={product.id}>
               <div className="product-item product-item-border">
                 <Link className="product-thumb" to={`/product/${product.id}`} style={{ 
                   display: 'block',
@@ -343,8 +341,6 @@ const SearchProduct = () => {
                     }}
                   />
                 </Link>
-                {product.status && <span className="badges">{product.status}</span>}
-
                 <div className="product-action">
                   <button type="button" className="product-action-btn" title="Quick View">
                     <i className="fa fa-expand" />
@@ -423,10 +419,8 @@ const SearchProduct = () => {
             </div>
           </div>
         )}
-      </div>
-
-      
-    </section>
+    </div>
+    </>
   );
 };
 

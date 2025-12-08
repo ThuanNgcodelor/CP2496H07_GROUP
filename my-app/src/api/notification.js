@@ -1,17 +1,16 @@
 import createApiInstance from "./createApiInstance.js";
 import { LOCAL_BASE_URL } from "../config/config.js";
 
-// Gọi qua gateway (port 8080)
 const getApiBaseUrl = () => {
-  return LOCAL_BASE_URL || 'http://localhost:8080';
+    return LOCAL_BASE_URL || 'http://localhost:8080';
 };
 
 const API_URL = "/v1/notifications";
-
 const api = createApiInstance(`${getApiBaseUrl()}${API_URL}`);
 
 /**
- * @returns {Promise<Array>
+ * Lấy tất cả thông báo của người dùng hiện tại
+ * @returns {Promise<Array>} - Promise trả về danh sách thông báo
  */
 export const getNotificationsByUserId = async () => {
     try {
@@ -23,7 +22,8 @@ export const getNotificationsByUserId = async () => {
 };
 
 /**
- * @returns {Promise<Array>}
+ * Lấy tất cả thông báo của shop owner hiện tại
+ * @returns {Promise<Array>} - Promise trả về danh sách thông báo của shop
  */
 export const getNotificationsByShopId = async () => {
     try {
@@ -34,89 +34,82 @@ export const getNotificationsByShopId = async () => {
     }
 };
 
-/**cd
- * Mark notification as read
- * @param {string} notificationId - ID of the notification
- * @returns {Promise} Response from server
+/**
+ * Đánh dấu thông báo là đã đọc
+ * @param {string} notificationId - ID của thông báo
+ * @returns {Promise} - Promise trả về kết quả cập nhật
  */
 export const markNotificationAsRead = async (notificationId) => {
     try {
         const response = await api.put(`/markAsRead/${notificationId}`);
         return response.data;
     } catch (error) {
-        console.error("Error marking notification as read:", error);
         throw new Error("Failed to mark notification as read");
     }
 };
 
 /**
- * Delete a notification
- * @param {string} notificationId - ID of the notification
- * @returns {Promise} Response from server
+ * Xóa một thông báo
+ * @param {string} notificationId - ID của thông báo cần xóa
+ * @returns {Promise} - Promise trả về kết quả xóa
  */
 export const deleteNotification = async (notificationId) => {
     try {
         const response = await api.delete(`/delete/${notificationId}`);
         return response.data;
     } catch (error) {
-        console.error("Error deleting notification:", error);
         throw new Error("Failed to delete notification");
     }
 };
 
 /**
- * Delete all notifications for the current user
- * @returns {Promise} Response from server
+ * Xóa tất cả thông báo của người dùng hiện tại
+ * @returns {Promise} - Promise trả về kết quả xóa
  */
 export const deleteAllNotifications = async () => {
     try {
         const response = await api.delete(`/deleteAllByUserId`);
         return response.data;
     } catch (error) {
-        console.error("Error deleting all notifications:", error);
         throw new Error("Failed to delete all notifications");
     }
 };
 
 /**
- * Delete all notifications for the current shop owner
- * @returns {Promise} Response from server
+ * Xóa tất cả thông báo của shop owner hiện tại
+ * @returns {Promise} - Promise trả về kết quả xóa
  */
 export const deleteAllShopNotifications = async () => {
     try {
         const response = await api.delete(`/deleteAllByShopId`);
         return response.data;
     } catch (error) {
-        console.error("Error deleting all shop notifications:", error);
         throw new Error("Failed to delete all shop notifications");
     }
 };
 
 /**
- * Mark all notifications as read for the current user
- * @returns {Promise} Response from server
+ * Đánh dấu tất cả thông báo của người dùng là đã đọc
+ * @returns {Promise} - Promise trả về kết quả cập nhật
  */
 export const markAllNotificationsAsRead = async () => {
     try {
         const response = await api.put(`/markAllAsReadByUserId`);
         return response.data;
     } catch (error) {
-        console.error("Error marking all notifications as read:", error);
         throw new Error("Failed to mark all notifications as read");
     }
 };
 
 /**
- * Mark all notifications as read for the current shop owner
- * @returns {Promise} Response from server
+ * Đánh dấu tất cả thông báo của shop owner là đã đọc
+ * @returns {Promise} - Promise trả về kết quả cập nhật
  */
 export const markAllShopNotificationsAsRead = async () => {
     try {
         const response = await api.put(`/markAllAsReadByShopId`);
         return response.data;
     } catch (error) {
-        console.error("Error marking all shop notifications as read:", error);
         throw new Error("Failed to mark all shop notifications as read");
     }
 };
-

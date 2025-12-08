@@ -24,13 +24,19 @@ export default function AccountInfo() {
 
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
+  const [toast, setToast] = useState({ open: false, text: "" });
+
+  const normalizeBirth = (val) => {
+    if (!val) return "";
+    const raw = String(val);
+    if (raw.toLowerCase() === "null" || raw.toLowerCase() === "undefined") return "";
+    return raw.split("T")[0].split(" ")[0];
+  };
 
   useEffect(() => {
     (async () => {
       try {
         const me = await getUser();
-        const pickBirth = (val) =>
-          !val ? "" : String(val).split("T")[0].split(" ")[0];
 
         setForm({
           id: me?.id ?? "",
@@ -42,7 +48,7 @@ export default function AccountInfo() {
             phoneNumber: me?.userDetails?.phoneNumber ?? me?.phoneNumber ?? "",
             gender: me?.userDetails?.gender ?? me?.gender ?? "MALE",
             aboutMe: me?.userDetails?.aboutMe ?? me?.aboutMe ?? "",
-            birthDate: pickBirth(me?.userDetails?.birthDate ?? me?.birthDate),
+            birthDate: normalizeBirth(me?.userDetails?.birthDate ?? me?.birthDate),
           },
         });
 
@@ -75,7 +81,13 @@ export default function AccountInfo() {
   };
   const onChangeDetails = (e) => {
     const { id, value } = e.target;
-    setForm((p) => ({ ...p, userDetails: { ...p.userDetails, [id]: value } }));
+    setForm((p) => ({
+      ...p,
+      userDetails: {
+        ...p.userDetails,
+        [id]: id === "birthDate" && value === "null" ? "" : value,
+      },
+    }));
   };
 
   // (tuỳ chọn) cắt ảnh thành vuông trước khi upload
@@ -139,15 +151,25 @@ export default function AccountInfo() {
         id: form.id,
         email: form.email,
         username: form.username,
-        password: form.password,
         userDetails: userDetailsToSend
       };
+      // Chỉ gửi password nếu có nhập
+      if (form.password && String(form.password).trim()) {
+        formDataToSend.password = String(form.password).trim();
+      }
 
       console.log("Sending data:", formDataToSend);
       await updateUser(formDataToSend, file);
-      setMsg("Success update!");
+      setMsg("Profile updated successfully");
+      setToast({ open: true, text: "Profile updated successfully" });
+      setTimeout(() => setToast({ open: false, text: "" }), 1800);
     } catch (err) {
-      setMsg(err?.message || "Update failure");
+      const backendMsg = err?.response?.data?.message;
+      const finalMsg = backendMsg || err?.message || "Update failure";
+      console.error("Update failed:", err?.response || err);
+      setMsg(finalMsg);
+      setToast({ open: true, text: finalMsg });
+      setTimeout(() => setToast({ open: false, text: "" }), 2200);
     } finally {
       setLoading(false);
     }
@@ -259,12 +281,12 @@ export default function AccountInfo() {
                 </div>
               </div>
               <div className="col-lg-6">
-                <div className="single-input-item">
+            <div className="single-input-item">
                   <label htmlFor="birthDate">Birth date</label>
                   <input
                     type="date"
                     id="birthDate"
-                    value={form.userDetails.birthDate}
+                value={form.userDetails.birthDate || ""}
                     onChange={onChangeDetails}
                   />
                 </div>
@@ -348,6 +370,30 @@ export default function AccountInfo() {
           </form>
         </div>
       </div>
+
+      {toast.open && (
+        <div
+          style={{
+            position: "fixed",
+            top: "40%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            background: "rgba(0,0,0,0.8)",
+            color: "white",
+            padding: "14px 18px",
+            borderRadius: 6,
+            zIndex: 2000,
+            minWidth: 220,
+            textAlign: "center",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.25)"
+          }}
+        >
+          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
+            ✓
+          </div>
+          <div style={{ fontSize: 14 }}>{toast.text}</div>
+        </div>
+      )}
     </div>
   );
 }

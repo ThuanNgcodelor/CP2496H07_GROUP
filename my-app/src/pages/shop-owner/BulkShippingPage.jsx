@@ -51,11 +51,13 @@ export default function BulkShippingPage() {
       setLoading(true);
       setError(null);
       
-      const response = await getShopOwnerOrders(statusFilter || null, currentPage, pageSize);
+      // Pass empty string instead of null if no filter
+      const filterValue = statusFilter && statusFilter.trim() !== '' ? statusFilter : null;
+      const response = await getShopOwnerOrders(filterValue, currentPage, pageSize);
       
       // Handle both paginated response and simple array
       let ordersList = [];
-      if (response.content) {
+      if (response && response.content && Array.isArray(response.content)) {
         // Paginated response
         ordersList = response.content;
         setTotalPages(response.totalPages || 1);
@@ -63,6 +65,10 @@ export default function BulkShippingPage() {
         // Simple array response
         ordersList = response;
         setTotalPages(1);
+      } else if (response && response.data && Array.isArray(response.data)) {
+        // Response wrapped in data property
+        ordersList = response.data;
+        setTotalPages(response.totalPages || 1);
       } else {
         ordersList = [];
         setTotalPages(1);
@@ -318,26 +324,28 @@ export default function BulkShippingPage() {
           <table className="table table-hover">
             <thead>
               <tr>
-                <th style={{width: '5%'}}>
+                <th style={{width: '4%'}}>
                   <input 
                     type="checkbox" 
                     checked={selectedOrders.size === orders.length && orders.length > 0}
                     onChange={toggleSelectAll}
                   />
                 </th>
-                <th style={{width: '15%'}}>Customer</th>
-                <th style={{width: '12%'}}>Phone</th>
-                <th style={{width: '20%'}}>Address</th>
-                <th style={{width: '10%'}}>Total</th>
-                <th style={{width: '10%'}}>Order Date</th>
-                <th style={{width: '10%'}}>Status</th>
-                <th style={{width: '13%'}}>Actions</th>
+                <th style={{width: '12%'}}>Customer</th>
+                <th style={{width: '10%'}}>Phone</th>
+                <th style={{width: '18%'}}>Address</th>
+                <th style={{width: '9%'}}>Subtotal</th>
+                <th style={{width: '9%'}}>Shipping</th>
+                <th style={{width: '9%'}}>Total</th>
+                <th style={{width: '9%'}}>Order Date</th>
+                <th style={{width: '9%'}}>Status</th>
+                <th style={{width: '11%'}}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="text-center py-4">
+                  <td colSpan="10" className="text-center py-4">
                     <p className="text-muted">No orders found</p>
                   </td>
                 </tr>
@@ -364,7 +372,21 @@ export default function BulkShippingPage() {
                         <td className="text-truncate" style={{maxWidth: '200px'}} title={order.fullAddress || order.shippingAddress || 'N/A'}>
                           {order.fullAddress || order.shippingAddress || 'N/A'}
                       </td>
-                        <td><strong style={{color: '#ee4d2d'}}>{formatPrice(order.totalPrice)}</strong></td>
+                        <td>
+                          <strong style={{color: '#555'}}>
+                            {formatPrice(order.totalPrice)}
+                          </strong>
+                        </td>
+                        <td>
+                          <span style={{color: '#666', fontSize: '0.9rem'}}>
+                            {order.shippingFee ? formatPrice(order.shippingFee) : 'N/A'}
+                          </span>
+                        </td>
+                        <td>
+                          <strong style={{color: '#ee4d2d'}}>
+                            {formatPrice((order.totalPrice || 0) + (order.shippingFee || 0))}
+                          </strong>
+                        </td>
                         <td>{formatDate(order.creationTimestamp)}</td>
                       <td>
                         <span className={`badge ${statusInfo.class}`}>
@@ -394,7 +416,7 @@ export default function BulkShippingPage() {
                     </tr>
                       {isExpanded && order.orderItems && order.orderItems.length > 0 && (
                       <tr>
-                          <td colSpan="8" style={{padding: '20px', background: '#f8f9fa'}}>
+                          <td colSpan="10" style={{padding: '20px', background: '#f8f9fa'}}>
                           <div className="order-details">
                             <h5 className="mb-3">
                                 <i className="fas fa-info-circle text-primary"></i> Order Details - {order.id}
@@ -459,12 +481,22 @@ export default function BulkShippingPage() {
                             <div className="row mt-3">
                               <div className="col-md-6 offset-md-6">
                                 <div className="price-summary">
-                                  <div className="d-flex justify-content-between total-amount">
-                                      <strong>Total:</strong>
-                                    <strong style={{color: '#ee4d2d', fontSize: '18px'}}>
-                                        {formatPrice(order.totalPrice)}
-                                    </strong>
+                                  <div className="d-flex justify-content-between mb-2">
+                                    <span>Subtotal:</span>
+                                    <strong>{formatPrice(order.totalPrice)}</strong>
+                                  </div>
+                                  {order.shippingFee && order.shippingFee > 0 && (
+                                    <div className="d-flex justify-content-between mb-2">
+                                      <span>Shipping Fee (GHN):</span>
+                                      <strong style={{color: '#ee4d2d'}}>{formatPrice(order.shippingFee)}</strong>
                                     </div>
+                                  )}
+                                  <div className="d-flex justify-content-between pt-2 border-top total-amount">
+                                    <strong>Total:</strong>
+                                    <strong style={{color: '#ee4d2d', fontSize: '18px'}}>
+                                      {formatPrice((order.totalPrice || 0) + (order.shippingFee || 0))}
+                                    </strong>
+                                  </div>
                                 </div>
                               </div>
                             </div>

@@ -48,12 +48,16 @@ const createApiInstance = (baseURL) => {
     );
 
     const PUBLIC_401_ALLOWLIST = [
-        "/user/vets/getAllVet",
-        "/user/vets/search",
         "/stock/product/list",
         "/stock/product/getProductById",
         "/stock/category/getAll",
         "/file-storage/get",
+        "/user/verifyOtp",
+        "/user/updatePassword",
+        "/user/forgotPassword",
+        "/user/login",
+        "/user/register",
+        "/user/login/google",
     ];
 
     api.interceptors.response.use(

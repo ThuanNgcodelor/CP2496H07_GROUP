@@ -9,8 +9,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface ProductService {
-    Product createProduct(ProductCreateRequest request, MultipartFile multipartFile);
-    Product updateProduct(ProductUpdateRequest request, MultipartFile multipartFile);
+    Product createProduct(ProductCreateRequest request, MultipartFile[] files);
+    Product updateProduct(ProductUpdateRequest request, MultipartFile[] files);
     Product getProductById(String id);
     Product findProductById(String id);
     void deleteProduct(String id);

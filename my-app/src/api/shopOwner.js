@@ -1,11 +1,16 @@
 import createApiInstance from "./createApiInstance.js";
 
 const API_URL = "/v1";
-
 const api = createApiInstance(API_URL);
 
+/**
+ * Thêm sản phẩm mới (Shop Owner)
+ * @param {Object} productData - Dữ liệu sản phẩm
+ * @param {File[]} images - Mảng các file ảnh của sản phẩm
+ * @returns {Promise} - Promise trả về sản phẩm đã tạo
+ */
 export const addProduct = async (productData, images) => {
-    try { 
+    try {
         const formData = new FormData();
         
         formData.append('request', new Blob([JSON.stringify(productData)], {
@@ -13,7 +18,7 @@ export const addProduct = async (productData, images) => {
         }));
         
         if (images && images.length > 0) {
-            images.forEach((image, index) => {
+            images.forEach((image) => {
                 formData.append('file', image);
             });
         }
@@ -25,13 +30,18 @@ export const addProduct = async (productData, images) => {
         });
         return res.data;
     } catch (error) {
-        console.error("Error adding product:", error);
         throw new Error(error.response?.data?.message || "Failed to add product");
     }
-}
+};
 
+/**
+ * Cập nhật sản phẩm (Shop Owner)
+ * @param {Object} productData - Dữ liệu sản phẩm cần cập nhật
+ * @param {File[]} images - Mảng các file ảnh mới (nếu có)
+ * @returns {Promise} - Promise trả về sản phẩm đã cập nhật
+ */
 export const updateProduct = async (productData, images) => {
-    try { 
+    try {
         const formData = new FormData();
         
         formData.append('request', new Blob([JSON.stringify(productData)], {
@@ -39,7 +49,7 @@ export const updateProduct = async (productData, images) => {
         }));
 
         if (images && images.length > 0) {
-            images.forEach((image, index) => {
+            images.forEach((image) => {
                 formData.append('file', image);
             });
         }
@@ -51,12 +61,16 @@ export const updateProduct = async (productData, images) => {
         });
         return res.data;
     } catch (error) {
-        console.error("Error updating product:", error);
         throw new Error(error.response?.data?.message || "Failed to update product");
     }
-}
+};
 
-        
+/**
+ * Lấy danh sách sản phẩm của shop owner (có phân trang)
+ * @param {number} pageNo - Số trang (mặc định: 1)
+ * @param {number} pageSize - Số lượng sản phẩm mỗi trang (mặc định: 6)
+ * @returns {Promise} - Promise trả về danh sách sản phẩm
+ */
 export const getProducts = async (pageNo = 1, pageSize = 6) => {
     try {
         const res = await api.get("/stock/product/listPageShopOwner", {
@@ -64,11 +78,17 @@ export const getProducts = async (pageNo = 1, pageSize = 6) => {
         });
         return res.data;
     } catch (error) {
-        console.error("Error fetching products:", error);
         throw new Error(error.response?.data?.message || "Failed to fetch products");
     }
-}
+};
 
+/**
+ * Tìm kiếm sản phẩm của shop owner
+ * @param {string} keyword - Từ khóa tìm kiếm
+ * @param {number} pageNo - Số trang (mặc định: 1)
+ * @param {number} pageSize - Số lượng sản phẩm mỗi trang (mặc định: 6)
+ * @returns {Promise} - Promise trả về kết quả tìm kiếm
+ */
 export const searchProducts = async (keyword = '', pageNo = 1, pageSize = 6) => {
     try {
         const res = await api.get("/stock/product/searchShopOwner", {
@@ -76,27 +96,34 @@ export const searchProducts = async (keyword = '', pageNo = 1, pageSize = 6) => 
         });
         return res.data;
     } catch (error) {
-        console.error("Error searching products:", error);
         throw new Error(error.response?.data?.message || "Failed to search products");
     }
-}
+};
 
+/**
+ * Lấy thông tin sản phẩm theo ID (Shop Owner)
+ * @param {string} id - ID của sản phẩm
+ * @returns {Promise} - Promise trả về thông tin sản phẩm
+ */
 export const getProductById = async (id) => {
     try {
         const res = await api.get(`/stock/product/getProductById/${id}`);
         return res.data;
     } catch (error) {
-        console.error("Error fetching product:", error);
         throw new Error(error.response?.data?.message || "Failed to fetch product");
     }
-}
+};
 
+/**
+ * Xóa sản phẩm (Shop Owner)
+ * @param {string} id - ID của sản phẩm cần xóa
+ * @returns {Promise} - Promise trả về kết quả xóa
+ */
 export const deleteProduct = async (id) => {
     try {
         const res = await api.delete(`/stock/product/deleteProductById/${id}`);
         return res.data;
     } catch (error) {
-        console.error("Error deleting product:", error);
         throw new Error(error.response?.data?.message || "Failed to delete product");
     }
-}
+};

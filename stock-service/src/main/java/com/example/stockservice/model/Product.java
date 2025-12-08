@@ -4,6 +4,7 @@ import com.example.stockservice.enums.ProductStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity(name = "products")
@@ -20,7 +21,12 @@ public class Product extends BaseEntity {
     private double discountPercent = 0;
     @Enumerated(EnumType.STRING)
     private ProductStatus status;
-    private String imageId;
+    private String imageId; // Main image (backward compatibility)
+    
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "product_images", joinColumns = @JoinColumn(name = "product_id"))
+    @Column(name = "image_id")
+    private List<String> imageIds; // Multiple images/videos
     
     private String userId;
     

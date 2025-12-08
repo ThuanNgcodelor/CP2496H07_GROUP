@@ -9,7 +9,6 @@ import {
 
 const USE_OBJECT_URL = true;
 
-// Nếu không dùng object URL, convert arraybuffer -> data URL
 const arrayBufferToDataUrl = (buffer, contentType) => {
   const bytes = new Uint8Array(buffer);
   let binary = "";

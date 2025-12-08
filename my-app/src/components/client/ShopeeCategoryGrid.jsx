@@ -21,8 +21,6 @@ export default function ShopeeCategoryGrid() {
     { id: 16, name: "Women's Shoes", icon: '👠', link: '/shop?category=womenshoes', color: '#AB47BC' },
     { id: 17, name: "Women's Bags", icon: '👜', link: '/shop?category=bag', color: '#FF7043' },
     { id: 18, name: "Women's Accessories & Jewelry", icon: '💍', link: '/shop?category=jewelry', color: '#FFA726' },
-    { id: 19, name: 'Online Grocery', icon: '🛒', link: '/shop?category=grocery', color: '#26A69A' },
-    { id: 20, name: 'Online Bookstore', icon: '📚', link: '/shop?category=books', color: '#42A5F5' }
   ];
 
   return (

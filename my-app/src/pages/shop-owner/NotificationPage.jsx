@@ -22,61 +22,62 @@ const formatNotification = (notification) => {
 
   let timeAgo = '';
   if (diffMins < 1) {
-    timeAgo = 'Vừa xong';
+    timeAgo = 'Just now';
   } else if (diffMins < 60) {
-    timeAgo = `${diffMins} phút trước`;
+    timeAgo = `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
   } else if (diffHours < 24) {
-    timeAgo = `${diffHours} giờ trước`;
+    timeAgo = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
   } else {
-    timeAgo = `${diffDays} ngày trước`;
+    timeAgo = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
   }
 
   let type = 'order';
   let icon = 'fa-shopping-cart';
   let color = 'primary';
-  let title = 'Đơn hàng mới';
+  let title = 'New Order';
 
   if (notification.message) {
-    if (notification.message.includes('đơn hàng mới')) {
+    const msg = notification.message.toLowerCase();
+    if (msg.includes('new order') || msg.includes('đơn hàng mới')) {
       type = 'order';
       icon = 'fa-shopping-cart';
       color = 'primary';
-      title = 'Đơn hàng mới';
-    } else if (notification.message.includes('thanh toán')) {
+      title = 'New Order';
+    } else if (msg.includes('paid') || msg.includes('thanh toán')) {
       type = 'order';
       icon = 'fa-check-circle';
       color = 'success';
-      title = 'Đơn hàng đã được thanh toán';
-    } else if (notification.message.includes('vận chuyển')) {
+      title = 'Order Paid';
+    } else if (msg.includes('shipped') || msg.includes('vận chuyển')) {
       type = 'order';
       icon = 'fa-truck';
       color = 'info';
-      title = 'Đơn hàng đã được vận chuyển';
-    } else if (notification.message.includes('hủy')) {
+      title = 'Order Shipped';
+    } else if (msg.includes('cancelled') || msg.includes('cancel') || msg.includes('hủy')) {
       type = 'order';
       icon = 'fa-times-circle';
       color = 'danger';
-      title = 'Đơn hàng bị hủy';
-    } else if (notification.message.includes('đánh giá')) {
+      title = 'Order Cancelled';
+    } else if (msg.includes('review') || msg.includes('rating') || msg.includes('đánh giá')) {
       type = 'order';
       icon = 'fa-star';
       color = 'warning';
-      title = 'Đánh giá mới';
-    } else if (notification.message.includes('hết hàng') || notification.message.includes('sắp hết hàng')) {
+      title = 'New Review';
+    } else if (msg.includes('out of stock') || msg.includes('hết hàng') || msg.includes('sắp hết hàng')) {
       type = 'product';
       icon = 'fa-exclamation-triangle';
       color = 'warning';
-      title = notification.message.includes('sắp hết hàng') ? 'Sản phẩm sắp hết hàng' : 'Sản phẩm đã hết hàng';
-    } else if (notification.message.includes('thêm')) {
+      title = msg.includes('sắp hết hàng') || msg.includes('low stock') ? 'Low Stock Alert' : 'Out of Stock';
+    } else if (msg.includes('added') || msg.includes('thêm')) {
       type = 'product';
       icon = 'fa-plus-circle';
       color = 'success';
-      title = 'Sản phẩm đã được thêm';
+      title = 'Product Added';
     } else {
       type = 'system';
       icon = 'fa-bell';
       color = 'secondary';
-      title = 'Thông báo hệ thống';
+      title = 'System Notification';
     }
   }
 
@@ -248,7 +249,7 @@ export default function NotificationPage() {
       }
     } catch (err) {
       console.error('Error marking notification as read:', err);
-      alert('Không thể đánh dấu thông báo đã đọc');
+      alert('Failed to mark notification as read');
       // Refresh on error to sync state
       await refreshNotifications();
     }
@@ -262,7 +263,7 @@ export default function NotificationPage() {
       window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (err) {
       console.error('Error marking all notifications as read:', err);
-      alert('Không thể đánh dấu tất cả thông báo đã đọc');
+      alert('Failed to mark all notifications as read');
       // Refresh on error to sync state
       await refreshNotifications();
     }
@@ -276,14 +277,14 @@ export default function NotificationPage() {
       window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (err) {
       console.error('Error deleting notification:', err);
-      alert('Không thể xóa thông báo');
+      alert('Failed to delete notification');
       // Refresh on error to sync state
       await refreshNotifications();
     }
   };
 
   const handleDeleteAll = async () => {
-    if (!window.confirm('Bạn có chắc muốn xóa tất cả thông báo?')) {
+    if (!window.confirm('Are you sure you want to delete all notifications?')) {
       return;
     }
 
@@ -294,7 +295,7 @@ export default function NotificationPage() {
       window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (err) {
       console.error('Error deleting all notifications:', err);
-      alert('Không thể xóa tất cả thông báo');
+      alert('Failed to delete all notifications');
       // Refresh on error to sync state
       await refreshNotifications();
     }
@@ -307,7 +308,7 @@ export default function NotificationPage() {
   };
 
   const getTimeAgoColor = (time) => {
-    if (time.includes('phút') || time.includes('giờ') || time === 'Vừa xong') {
+    if (time.includes('minute') || time.includes('hour') || time === 'Just now') {
       return '#ee4d2d';
     }
     return '#6c757d';
@@ -320,7 +321,7 @@ export default function NotificationPage() {
           <div className="spinner-border" role="status">
             <span className="sr-only">Loading...</span>
           </div>
-          <p style={{marginTop: '16px', color: '#666'}}>Đang tải thông báo...</p>
+          <p style={{marginTop: '16px', color: '#666'}}>Loading notifications...</p>
         </div>
       </div>
     );
@@ -331,10 +332,10 @@ export default function NotificationPage() {
       <div className="dashboard-container">
         <div style={{textAlign: 'center', padding: '60px 20px'}}>
           <i className="fas fa-exclamation-circle" style={{fontSize: '64px', color: '#dc3545', marginBottom: '16px', display: 'block'}}></i>
-          <h5 style={{color: '#dc3545', marginBottom: '8px'}}>Lỗi khi tải thông báo</h5>
+          <h5 style={{color: '#dc3545', marginBottom: '8px'}}>Error Loading Notifications</h5>
           <p style={{color: '#666'}}>{error}</p>
           <button className="btn btn-primary-shop" onClick={() => window.location.reload()}>
-            Thử lại
+            Try Again
           </button>
         </div>
       </div>
@@ -347,15 +348,15 @@ export default function NotificationPage() {
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
           <div>
             <div>
-              <h1>Thông Báo</h1>
+              <h1>Notifications</h1>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <p className="text-muted" style={{ margin: 0 }}>
                   {unreadCount > 0 ? (
                     <span style={{color: '#ee4d2d', fontWeight: '600'}}>
-                      Bạn có {unreadCount} thông báo chưa đọc
+                      You have {unreadCount} unread notification{unreadCount > 1 ? 's' : ''}
                     </span>
                   ) : (
-                    'Tất cả thông báo đã được đọc'
+                    'All notifications have been read'
                   )}
                 </p>
                 {wsConnected ? (
@@ -391,7 +392,7 @@ export default function NotificationPage() {
                 onClick={handleMarkAllAsRead}
                 style={{marginRight: '10px'}}
               >
-                <i className="fas fa-check-double"></i> Đánh dấu tất cả đã đọc
+                <i className="fas fa-check-double"></i> Mark All as Read
               </button>
             )}
             {notifications.length > 0 && (
@@ -399,7 +400,7 @@ export default function NotificationPage() {
                 className="btn btn-outline-danger"
                 onClick={handleDeleteAll}
               >
-                <i className="fas fa-trash"></i> Xóa tất cả
+                <i className="fas fa-trash"></i> Delete All
               </button>
             )}
           </div>
@@ -414,7 +415,7 @@ export default function NotificationPage() {
               <input
                 type="text"
                 className="form-control"
-                placeholder="Tìm kiếm thông báo..."
+                placeholder="Search notifications..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{width: '100%'}}
@@ -426,31 +427,31 @@ export default function NotificationPage() {
                   className={`btn ${filter === 'all' ? 'btn-primary-shop' : 'btn-outline-secondary'}`}
                   onClick={() => setFilter('all')}
                 >
-                  Tất cả ({notifications.length})
+                  All ({notifications.length})
                 </button>
                 <button 
                   className={`btn ${filter === 'unread' ? 'btn-primary-shop' : 'btn-outline-secondary'}`}
                   onClick={() => setFilter('unread')}
                 >
-                  Chưa đọc ({unreadCount})
+                  Unread ({unreadCount})
                 </button>
                 <button 
                   className={`btn ${filter === 'order' ? 'btn-primary-shop' : 'btn-outline-secondary'}`}
                   onClick={() => setFilter('order')}
                 >
-                  Đơn hàng
+                  Orders
                 </button>
                 <button 
                   className={`btn ${filter === 'product' ? 'btn-primary-shop' : 'btn-outline-secondary'}`}
                   onClick={() => setFilter('product')}
                 >
-                  Sản phẩm
+                  Products
                 </button>
                 <button 
                   className={`btn ${filter === 'system' ? 'btn-primary-shop' : 'btn-outline-secondary'}`}
                   onClick={() => setFilter('system')}
                 >
-                  Hệ thống
+                  System
                 </button>
               </div>
             </div>
@@ -464,8 +465,8 @@ export default function NotificationPage() {
           {filteredNotifications.length === 0 ? (
             <div style={{textAlign: 'center', padding: '60px 20px'}}>
               <i className="fas fa-bell-slash" style={{fontSize: '64px', color: '#ddd', marginBottom: '16px', display: 'block'}}></i>
-              <h5 style={{color: '#666', marginBottom: '8px'}}>Không có thông báo</h5>
-              <p style={{color: '#999'}}>Bạn chưa có thông báo nào</p>
+              <h5 style={{color: '#666', marginBottom: '8px'}}>No Notifications</h5>
+              <p style={{color: '#999'}}>You don't have any notifications yet</p>
             </div>
           ) : (
             <div className="notification-list">
@@ -526,7 +527,7 @@ export default function NotificationPage() {
                           handleViewOrder(notification.orderId);
                         }}
                       >
-                        <i className="fas fa-eye"></i> Xem đơn hàng
+                        <i className="fas fa-eye"></i> View Order
                       </button>
                     )}
                   </div>

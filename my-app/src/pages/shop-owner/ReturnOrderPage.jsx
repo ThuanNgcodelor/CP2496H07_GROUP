@@ -54,11 +54,13 @@ export default function ReturnOrderPage() {
       setLoading(true);
       setError(null);
       
-      const response = await getShopOwnerOrders(statusFilter || null, currentPage, pageSize);
+      // Pass empty string instead of null if no filter
+      const filterValue = statusFilter && statusFilter.trim() !== '' ? statusFilter : null;
+      const response = await getShopOwnerOrders(filterValue, currentPage, pageSize);
       
       // Handle both paginated response and simple array
       let ordersList = [];
-      if (response.content) {
+      if (response && response.content && Array.isArray(response.content)) {
         // Paginated response
         ordersList = response.content;
         setTotalPages(response.totalPages || 1);
@@ -66,6 +68,10 @@ export default function ReturnOrderPage() {
         // Simple array response
         ordersList = response;
         setTotalPages(1);
+      } else if (response && response.data && Array.isArray(response.data)) {
+        // Response wrapped in data property
+        ordersList = response.data;
+        setTotalPages(response.totalPages || 1);
       } else {
         ordersList = [];
         setTotalPages(1);
@@ -253,6 +259,8 @@ export default function ReturnOrderPage() {
                 <th>No.</th>
                 <th>Customer</th>
                 <th>Products</th>
+                <th>Subtotal</th>
+                <th>Shipping Fee</th>
                 <th>Total</th>
                 <th>Order Date</th>
                 <th>Status</th>
@@ -262,7 +270,7 @@ export default function ReturnOrderPage() {
             <tbody>
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="text-center py-4">
+                  <td colSpan="9" className="text-center py-4">
                     <p className="text-muted">No orders found</p>
                   </td>
                 </tr>
@@ -295,8 +303,18 @@ export default function ReturnOrderPage() {
                           </div>
                         </td>
                         <td>
-                          <strong style={{color: '#ee4d2d'}}>
+                          <strong style={{color: '#555'}}>
                             {formatPrice(order.totalPrice)}
+                          </strong>
+                        </td>
+                        <td>
+                          <span style={{color: '#666', fontSize: '0.9rem'}}>
+                            {order.shippingFee ? formatPrice(order.shippingFee) : 'N/A'}
+                          </span>
+                        </td>
+                        <td>
+                          <strong style={{color: '#ee4d2d'}}>
+                            {formatPrice((order.totalPrice || 0) + (order.shippingFee || 0))}
                           </strong>
                         </td>
                         <td>{formatDate(order.creationTimestamp)}</td>
@@ -330,7 +348,7 @@ export default function ReturnOrderPage() {
                       </tr>
                       {isExpanded && order.orderItems && order.orderItems.length > 0 && (
                         <tr>
-                          <td colSpan="7" style={{ backgroundColor: '#f8f9fa', padding: '20px' }}>
+                          <td colSpan="9" style={{ backgroundColor: '#f8f9fa', padding: '20px' }}>
                             <div style={{ paddingLeft: '20px' }}>
                               <h6 style={{ marginBottom: '15px', fontWeight: 'bold' }}>Product Details:</h6>
                               <div className="table-responsive">
@@ -356,6 +374,26 @@ export default function ReturnOrderPage() {
                                     ))}
                                   </tbody>
                                 </table>
+                              </div>
+                              <div className="mt-3 d-flex justify-content-end">
+                                <div style={{ minWidth: '300px' }}>
+                                  <div className="d-flex justify-content-between mb-2">
+                                    <span>Subtotal:</span>
+                                    <strong>{formatPrice(order.totalPrice)}</strong>
+                                  </div>
+                                  {order.shippingFee && order.shippingFee > 0 && (
+                                    <div className="d-flex justify-content-between mb-2">
+                                      <span>Shipping Fee (GHN):</span>
+                                      <strong style={{color: '#ee4d2d'}}>{formatPrice(order.shippingFee)}</strong>
+                                    </div>
+                                  )}
+                                  <div className="d-flex justify-content-between pt-2 border-top">
+                                    <strong>Total:</strong>
+                                    <strong style={{color: '#ee4d2d', fontSize: '1.1rem'}}>
+                                      {formatPrice((order.totalPrice || 0) + (order.shippingFee || 0))}
+                                    </strong>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </td>

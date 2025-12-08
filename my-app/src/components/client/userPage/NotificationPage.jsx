@@ -67,6 +67,12 @@ export default function NotificationPage() {
   const [filter, setFilter] = useState('all'); // all, unread, order
   const [searchQuery, setSearchQuery] = useState('');
   const [userId, setUserId] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    type: null, // 'single' | 'all'
+    targetId: null,
+    message: ''
+  });
   
   // WebSocket for real-time notifications
   const { notifications: wsNotifications, connected: wsConnected } = useWebSocketNotification(userId, false);
@@ -236,34 +242,45 @@ export default function NotificationPage() {
     }
   };
 
+  const openConfirm = (type, targetId = null) => {
+    const message = type === 'all'
+      ? 'Are you sure you want to delete all notifications?'
+      : 'Are you sure you want to delete this notification?';
+    setConfirmModal({ open: true, type, targetId, message, confirmButtonText, cancelButtonText });  
+  };
+
+  const closeConfirm = () => setConfirmModal({ open: false, type: null, targetId: null, message: '', confirmButtonText: 'DELETE', cancelButtonText: 'CANCEL' });
+
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this notification?')) {
+    openConfirm('single', id);
+  };
+
+  const handleDeleteAll = () => {
+    openConfirm('all');
+  };
+
+  const confirmAction = async () => {
+    if (confirmModal.type === 'single' && confirmModal.targetId) {
       try {
-        await deleteNotification(id);
-        // Update will be handled via WebSocket update event, but we can optimistically update
-        setNotifications(prev => prev.filter(n => n.id !== id));
+        await deleteNotification(confirmModal.targetId);
+        setNotifications(prev => prev.filter(n => n.id !== confirmModal.targetId));
         window.dispatchEvent(new CustomEvent('notificationsUpdated'));
       } catch (err) {
         console.error('Error deleting notification:', err);
-        alert('Failed to delete notification');
-        // Refresh on error to sync state
         await refreshNotifications();
+      } finally {
+        closeConfirm();
       }
-    }
-  };
-
-  const handleDeleteAll = async () => {
-    if (window.confirm('Are you sure you want to delete all notifications?')) {
+    } else if (confirmModal.type === 'all') {
       try {
         await deleteAllNotificationsAPI();
-        // Update will be handled via WebSocket update event, but we can optimistically update
         setNotifications([]);
         window.dispatchEvent(new CustomEvent('notificationsUpdated'));
       } catch (err) {
         console.error('Error deleting all notifications:', err);
-        alert('Failed to delete all notifications');
-        // Refresh on error to sync state
         await refreshNotifications();
+      } finally {
+        closeConfirm();
       }
     }
   };
@@ -332,7 +349,6 @@ export default function NotificationPage() {
                   borderRadius: '4px',
                   fontWeight: 500
                 }}>
-                  ● Real-time
                 </span>
               ) : (
                 <span style={{ 
@@ -533,6 +549,71 @@ export default function NotificationPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Confirm Modal */}
+      {confirmModal.open && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.45)',
+            zIndex: 2000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+        >
+          <div
+            style={{
+              background: 'white',
+              borderRadius: 4,
+              width: '100%',
+              maxWidth: 420,
+              padding: '20px 24px',
+              boxShadow: '0 8px 20px rgba(0,0,0,0.12)'
+            }}
+          >
+            <p style={{ margin: '0 0 20px 0', fontSize: 16, color: '#333', textAlign: 'center' }}>
+              {confirmModal.message}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={closeConfirm}
+                style={{
+                  minWidth: 100,
+                  padding: '10px 16px',
+                  border: '1px solid #ddd',
+                  background: 'white',
+                  color: '#555',
+                  borderRadius: 2,
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                Cancle
+              </button>
+              <button
+                type="button"
+                onClick={confirmAction}
+                style={{
+                  minWidth: 100,
+                  padding: '10px 16px',
+                  border: 'none',
+                  background: '#ee4d2d',
+                  color: 'white',
+                  borderRadius: 2,
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

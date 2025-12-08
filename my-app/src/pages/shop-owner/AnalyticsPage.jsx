@@ -12,7 +12,7 @@ export default function AnalyticsPage() {
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
-        <h1>Phân Tích Bán Hàng</h1>
+        <h1>Sales Analytics</h1>
       </div>
 
       {/* Stats Cards */}
@@ -23,7 +23,7 @@ export default function AnalyticsPage() {
           </div>
           <div className="label">
             <i className="fas fa-dollar-sign"></i>
-            Doanh thu hôm nay
+            Today's Revenue
           </div>
           <div className="badge bg-success" style={{marginTop: '10px'}}>
             {stats.growth}
@@ -33,34 +33,34 @@ export default function AnalyticsPage() {
           <div className="count" style={{fontSize: '32px'}}>{stats.todayOrders}</div>
           <div className="label">
             <i className="fas fa-shopping-cart"></i>
-            Đơn hàng hôm nay
+            Today's Orders
           </div>
         </div>
         <div className="todo-card">
           <div className="count" style={{fontSize: '32px'}}>{stats.todayProducts}</div>
           <div className="label">
             <i className="fas fa-box"></i>
-            Sản phẩm đang bán
+            Products on Sale
           </div>
         </div>
         <div className="todo-card">
           <div className="count" style={{fontSize: '32px'}}>4.8</div>
           <div className="label">
             <i className="fas fa-star"></i>
-            Đánh giá trung bình
+            Average Rating
           </div>
         </div>
       </div>
 
       {/* Charts Section */}
       <div className="analytics-section">
-        <div className="section-title">Biểu đồ doanh thu 7 ngày qua</div>
+        <div className="section-title">Revenue Chart - Last 7 Days</div>
         <div className="analytics-content">
           <canvas id="revenueChart" style={{width: '100%', height: '300px'}}>
             {/* Chart placeholder */}
-            <div style={{textAlign: 'center', color: '#9ca3af'}}>
+            <div style={{textAlign: 'center', color: '#9ca3af', padding: '40px'}}>
               <i className="fas fa-chart-line" style={{fontSize: '48px', marginBottom: '10px'}}></i>
-              <p>Dữ liệu biểu đồ sẽ được hiển thị tại đây</p>
+              <p>Chart data will be displayed here</p>
             </div>
           </canvas>
         </div>
@@ -68,29 +68,29 @@ export default function AnalyticsPage() {
 
       {/* Top Products */}
       <div className="analytics-section" style={{marginTop: '20px'}}>
-        <div className="section-title">Sản phẩm bán chạy</div>
+        <div className="section-title">Best Selling Products</div>
         <div className="table-responsive">
           <table className="table">
             <thead>
               <tr>
-                <th>Sản phẩm</th>
-                <th>Đã bán</th>
-                <th>Doanh thu</th>
+                <th>Product</th>
+                <th>Sold</th>
+                <th>Revenue</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td>Áo khoác denim</td>
+                <td>Denim Jacket</td>
                 <td>120</td>
                 <td>35,880,000₫</td>
               </tr>
               <tr>
-                <td>Giày sneaker</td>
+                <td>Sneaker Shoes</td>
                 <td>150</td>
                 <td>89,850,000₫</td>
               </tr>
               <tr>
-                <td>Quần jean slim</td>
+                <td>Slim Jeans</td>
                 <td>80</td>
                 <td>31,920,000₫</td>
               </tr>
@@ -101,4 +101,3 @@ export default function AnalyticsPage() {
     </div>
   );
 }
-

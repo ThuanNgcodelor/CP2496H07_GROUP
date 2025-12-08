@@ -103,33 +103,6 @@ export default function User() {
                                 </div>
                             </div>
 
-                            {/* Promotional Banner */}
-                            <div style={{ padding: '16px', background: '#fff5f0', borderBottom: '1px solid #f0f0f0' }}>
-                                <div className="d-flex align-items-center gap-2">
-                                    <div style={{
-                                        width: '32px',
-                                        height: '32px',
-                                        background: '#ee4d2d',
-                                        borderRadius: '4px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: 'white',
-                                        fontWeight: 600,
-                                        fontSize: '12px'
-                                    }}>
-                                        12.12
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: '12px', color: '#ee4d2d', fontWeight: 500 }}>
-                                            12.12 Super Birthday Sale
-                                        </div>
-                                        <div style={{ fontSize: '10px', color: '#999' }}>New</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Navigation Menu */}
                             <div>
                                 <button
                                     onClick={() => handleTabClick("notifications")}

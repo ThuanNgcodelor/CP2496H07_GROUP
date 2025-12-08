@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import com.example.stockservice.model.Size;
@@ -60,35 +61,58 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Product createProduct(ProductCreateRequest request, MultipartFile multipartFile) {
+    public Product createProduct(ProductCreateRequest request, MultipartFile[] files) {
         String imageId = request.getImageId();
-        if (multipartFile != null) {
-            imageId = fileStorageClient.uploadImageToFIleSystem(multipartFile).getBody();
+        List<String> imageIds = new ArrayList<>();
+        
+        // Upload multiple files if provided
+        if (files != null && files.length > 0) {
+            for (MultipartFile file : files) {
+                if (file != null && !file.isEmpty()) {
+                    try {
+                        String uploadedId = fileStorageClient.uploadImageToFIleSystem(file).getBody();
+                        if (uploadedId != null) {
+                            imageIds.add(uploadedId);
+                            // First image becomes main imageId (backward compatibility)
+                            if (imageId == null) {
+                                imageId = uploadedId;
+                            }
+                        }
+                    } catch (Exception e) {
+                        // Continue with other files if one fails
+                    }
+                }
+            }
         }
         
-        Product product = productRepository.save(
-                Product.builder()
-                        .name(request.getName())
-                        .description(request.getDescription())
-                        .price(request.getPrice())
-                        .originalPrice(request.getOriginalPrice())
-                        .discountPercent(request.getDiscountPercent())
-                        .status(ProductStatus.IN_STOCK)
-                        .category(categoryService.findCategoryById(request.getCategoryId()))
-                        .imageId(imageId)
-                        .userId(request.getUserId())  
-                        .build()
-        );
+        Product product = Product.builder()
+                .name(request.getName())
+                .description(request.getDescription())
+                .price(request.getPrice())
+                .originalPrice(request.getOriginalPrice())
+                .discountPercent(request.getDiscountPercent())
+                .status(ProductStatus.IN_STOCK)
+                .category(categoryService.findCategoryById(request.getCategoryId()))
+                .imageId(imageId)
+                .userId(request.getUserId())  
+                .build();
+        
+        if (!imageIds.isEmpty()) {
+            product.setImageIds(imageIds);
+        }
+        
+        product = productRepository.save(product);
         
         // CREATE SIZES if provided
         if (request.getSizes() != null && !request.getSizes().isEmpty()) {
+            final Product savedProduct = product; // Final reference for lambda
             List<Size> sizes = request.getSizes().stream()
                     .map(sizeRequest -> Size.builder()
                             .name(sizeRequest.getName())
                             .description(sizeRequest.getDescription())
                             .stock(sizeRequest.getStock())
                             .priceModifier(sizeRequest.getPriceModifier())
-                            .product(product)
+                            .product(savedProduct)
                             .build())
                     .collect(Collectors.toList());
 
@@ -100,7 +124,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Product updateProduct(ProductUpdateRequest request, MultipartFile multipartFile) {
+    public Product updateProduct(ProductUpdateRequest request, MultipartFile[] files) {
        Product toUpdate = findProductById(request.getId());
         if (request.getName() != null) {
             toUpdate.setName(request.getName());
@@ -124,11 +148,50 @@ public class ProductServiceImpl implements ProductService {
             toUpdate.setStatus(ProductStatus.valueOf(request.getStatus()));
         }
         
-        if (multipartFile != null) {
-            String imageId = fileStorageClient.uploadImageToFIleSystem(multipartFile).getBody();
-            if (imageId != null) {
-                fileStorageClient.deleteImageFromFileSystem(toUpdate.getImageId());
-                toUpdate.setImageId(imageId);
+        // Upload new files if provided
+        if (files != null && files.length > 0) {
+            List<String> newImageIds = new ArrayList<>();
+            String newMainImageId = null;
+            
+            for (MultipartFile file : files) {
+                if (file != null && !file.isEmpty()) {
+                    try {
+                        String uploadedId = fileStorageClient.uploadImageToFIleSystem(file).getBody();
+                        if (uploadedId != null) {
+                            newImageIds.add(uploadedId);
+                            if (newMainImageId == null) {
+                                newMainImageId = uploadedId;
+                            }
+                        }
+                    } catch (Exception e) {
+                        // Continue with other files if one fails
+                    }
+                }
+            }
+            
+            if (!newImageIds.isEmpty()) {
+                // Delete old images if replacing
+                if (toUpdate.getImageIds() != null) {
+                    for (String oldId : toUpdate.getImageIds()) {
+                        try {
+                            fileStorageClient.deleteImageFromFileSystem(oldId);
+                        } catch (Exception e) {
+                            // Continue if deletion fails
+                        }
+                    }
+                }
+                if (toUpdate.getImageId() != null && !newImageIds.contains(toUpdate.getImageId())) {
+                    try {
+                        fileStorageClient.deleteImageFromFileSystem(toUpdate.getImageId());
+                    } catch (Exception e) {
+                        // Continue if deletion fails
+                    }
+                }
+                
+                toUpdate.setImageIds(newImageIds);
+                if (newMainImageId != null) {
+                    toUpdate.setImageId(newMainImageId);
+                }
             }
         }
         

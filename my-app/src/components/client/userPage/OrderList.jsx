@@ -48,6 +48,7 @@ export default function OrderList() {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("ALL");
   const [imageUrls, setImageUrls] = useState({});
+  const [confirmModal, setConfirmModal] = useState({ open: false, orderId: null });
 
   useEffect(() => {
     (async () => {
@@ -224,16 +225,19 @@ export default function OrderList() {
 
   const [successMessage, setSuccessMessage] = useState('');
 
-  const handleCancelOrder = async (orderId) => {
-    if (!window.confirm('Are you sure you want to cancel this order?')) {
-      return;
-    }
-    
+  const handleCancelOrder = (orderId) => {
+    setConfirmModal({ open: true, orderId });
+  };
+
+  const closeConfirm = () => setConfirmModal({ open: false, orderId: null });
+
+  const confirmCancel = async () => {
+    if (!confirmModal.orderId) return;
     try {
       setLoading(true);
       setError('');
       setSuccessMessage('');
-      await cancelOrder(orderId);
+      await cancelOrder(confirmModal.orderId);
       setSuccessMessage('Order cancelled successfully');
       const data = await getOrdersByUser();
       setOrders(Array.isArray(data) ? data : []);
@@ -243,6 +247,7 @@ export default function OrderList() {
       console.error(e);
     } finally {
       setLoading(false);
+      closeConfirm();
     }
   };
 
@@ -699,6 +704,71 @@ export default function OrderList() {
           </>
         )}
       </div>
+
+      {/* Confirm cancel modal */}
+      {confirmModal.open && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.45)',
+            zIndex: 2000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+        >
+          <div
+            style={{
+              background: 'white',
+              borderRadius: 4,
+              width: '100%',
+              maxWidth: 420,
+              padding: '20px 24px',
+              boxShadow: '0 8px 20px rgba(0,0,0,0.12)'
+            }}
+          >
+            <p style={{ margin: '0 0 20px 0', fontSize: 16, color: '#333', textAlign: 'center' }}>
+            Are you sure you want to cancel this order?
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={closeConfirm}
+                style={{
+                  minWidth: 100,
+                  padding: '10px 16px',
+                  border: '1px solid #ddd',
+                  background: 'white',
+                  color: '#555',
+                  borderRadius: 2,
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                CANCEL
+              </button>
+              <button
+                type="button"
+                onClick={confirmCancel}
+                style={{
+                  minWidth: 100,
+                  padding: '10px 16px',
+                  border: 'none',
+                  background: '#ee4d2d',
+                  color: 'white',
+                  borderRadius: 2,
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                CONFIRM
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

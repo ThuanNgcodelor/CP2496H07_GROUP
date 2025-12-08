@@ -31,11 +31,6 @@ export default function Header() {
 
   const [searchQuery, setSearchQuery] = useState("");
 
-  const trendingKeywords = [
-    "USB OTG", "Cat Litter 30kg", "Window Curtains", "Hair Clipper",
-    "Executive Chair", "Power Outlet", "Bedside Storage", "Ugreen Tag"
-  ];
-
   useEffect(() => {
     const r = getUserRole();
     const list = Array.isArray(r) ? r : r ? [r] : [];
@@ -410,34 +405,7 @@ export default function Header() {
                 ))}
               </div>
             )}
-            
-            {/* Trending Keywords */}
-            <div className="d-flex gap-2 mt-2" style={{ flexWrap: 'wrap' }}>
-              {trendingKeywords.slice(0, 8).map((keyword, idx) => (
-                <Link
-                  key={idx}
-                  to={`/shop?q=${encodeURIComponent(keyword)}`}
-                  style={{
-                    color: 'rgba(255,255,255,0.8)',
-                    fontSize: '11px',
-                    textDecoration: 'none',
-                    padding: '2px 4px',
-                    borderRadius: '2px',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = 'white';
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
-                    e.currentTarget.style.background = 'transparent';
-                  }}
-                >
-                  {keyword}
-                </Link>
-              ))}
-            </div>
+           
           </div>
 
           {/* Desktop: Icons */}

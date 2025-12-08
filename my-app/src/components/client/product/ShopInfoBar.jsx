@@ -5,10 +5,7 @@ export default function ShopInfoBar({
   onChat,
   onViewShop,
 }) {
-  console.log('ShopInfoBar received shopOwner:', shopOwner);
-  
   if (!shopOwner) {
-    console.log('ShopInfoBar: No shopOwner data');
     return null;
   }
 

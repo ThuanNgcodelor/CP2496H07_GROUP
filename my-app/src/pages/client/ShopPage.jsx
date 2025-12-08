@@ -7,7 +7,6 @@ export default function ShopPage() {
         <div className="wrapper">
             <Header/>
             <main className="main-content">
-                <ShopTopBar />
                 <SearchProduct />
             </main>
         </div>

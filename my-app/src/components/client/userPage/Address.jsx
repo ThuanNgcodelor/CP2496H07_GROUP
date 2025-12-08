@@ -892,14 +892,14 @@ export default function Address() {
         <div style={{ padding: '0', width: '100%' }}>
             {/* Header */}
             <div style={{ 
-                padding: '20px 24px', 
+                padding: '16px 20px', 
                 borderBottom: '1px solid #f0f0f0', 
                 background: 'white',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center'
             }}>
-                <h4 style={{ fontSize: '20px', fontWeight: 500, color: '#222', margin: 0 }}>My Addresses</h4>
+                <h4 style={{ fontSize: '18px', fontWeight: 500, color: '#222', margin: 0 }}>Địa chỉ của tôi</h4>
                 <button
                     onClick={() => {
                         setShowModal(true);
@@ -943,16 +943,16 @@ export default function Address() {
                 )}
 
             {/* Address List */}
-            <div style={{ padding: '24px', background: 'white', minHeight: '400px' }}>
+            <div style={{ padding: '16px 20px', background: 'white', minHeight: '400px' }}>
                 {fetching ? (
                     <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
                         <Loading />
                     </div>
                 ) : addresses.length > 0 ? (
                     <>
-                        <div style={{ marginBottom: '16px', fontSize: '14px', color: '#222', fontWeight: 500 }}>
-                            Addresses
-                                </div>
+                        <div style={{ marginBottom: '12px', fontSize: '14px', color: '#222', fontWeight: 500 }}>
+                            Địa chỉ
+                        </div>
                         {addresses.map((address, index) => {
                             const isDefault = address.isDefault || address.default;
                             return (
@@ -961,15 +961,15 @@ export default function Address() {
                                     style={{
                                         border: '1px solid #f0f0f0',
                                         borderRadius: '4px',
-                                        marginBottom: '16px',
+                                        marginBottom: '12px',
                                         background: 'white',
                                         overflow: 'hidden'
                                     }}
                                 >
                                     {/* Address Header */}
                                     <div style={{
-                                        padding: '16px 20px',
-                                        borderBottom: '1px solid #f0f0f0',
+                                        padding: '12px 16px',
+                                        borderBottom: '1px solid #f5f5f5',
                                         background: 'white',
                                         display: 'flex',
                                         justifyContent: 'space-between',
@@ -978,16 +978,16 @@ export default function Address() {
                                         gap: '12px'
                                     }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                                            <h5 style={{ margin: 0, fontSize: '16px', fontWeight: 500, color: '#222' }}>
+                                            <h5 style={{ margin: 0, fontSize: '15px', fontWeight: 500, color: '#222' }}>
                                                 {address.recipientName || address.recipient_name || 'Unnamed'}
                                             </h5>
                                             {isDefault && (
                                                 <span style={{
                                                     border: '1px solid #ee4d2d',
                                                     color: '#ee4d2d',
-                                                    padding: '2px 8px',
+                                                    padding: '2px 6px',
                                                     borderRadius: '2px',
-                                                    fontSize: '12px',
+                                                    fontSize: '11px',
                                                     fontWeight: 500,
                                                     background: 'transparent'
                                                 }}>
@@ -1003,9 +1003,9 @@ export default function Address() {
                                                     background: 'transparent',
                                                     border: isDefault ? '1px solid #ee4d2d' : '1px solid #ddd',
                                                     color: isDefault ? '#ee4d2d' : '#555',
-                                                    padding: '6px 16px',
+                                                    padding: '6px 12px',
                                                     borderRadius: '2px',
-                                                    fontSize: '13px',
+                                                    fontSize: '12px',
                                                     cursor: isDefault ? 'not-allowed' : 'pointer',
                                                     opacity: isDefault ? 0.7 : 1
                                                 }}
@@ -1018,9 +1018,9 @@ export default function Address() {
                                                     background: 'transparent',
                                                     border: 'none',
                                                     color: '#0055aa',
-                                                    padding: '6px 16px',
+                                                    padding: '6px 12px',
                                                     borderRadius: '2px',
-                                                    fontSize: '13px',
+                                                    fontSize: '12px',
                                                     cursor: 'pointer',
                                                     textDecoration: 'underline'
                                                 }}
@@ -1034,9 +1034,9 @@ export default function Address() {
                                                         background: 'transparent',
                                                         border: 'none',
                                                         color: '#0055aa',
-                                                        padding: '6px 16px',
+                                                        padding: '6px 12px',
                                                         borderRadius: '2px',
-                                                        fontSize: '13px',
+                                                        fontSize: '12px',
                                                         cursor: 'pointer',
                                                         textDecoration: 'underline'
                                                     }}
@@ -1048,15 +1048,15 @@ export default function Address() {
                             </div>
 
                                     {/* Address Body */}
-                                    <div style={{ padding: '20px' }}>
-                                        <div style={{ fontSize: '14px', color: '#222', lineHeight: '1.8' }}>
-                                            <div style={{ marginBottom: '8px' }}>
+                                    <div style={{ padding: '14px 16px' }}>
+                                        <div style={{ fontSize: '13px', color: '#222', lineHeight: '1.7' }}>
+                                            <div style={{ marginBottom: '6px' }}>
                                                 <strong>Name:</strong> {address.recipientName || address.recipient_name || 'N/A'}
                         </div>
-                                            <div style={{ marginBottom: '8px' }}>
+                                            <div style={{ marginBottom: '6px' }}>
                                                 <strong>Phone Number:</strong> {address.recipientPhone || address.recipient_phone || 'N/A'}
                     </div>
-                                            <div style={{ marginBottom: '8px' }}>
+                                            <div style={{ marginBottom: '6px' }}>
                                                 <strong>Address:</strong> {address.streetAddress || address.street_address || 'N/A'}
                                 </div>
                                             <div>
@@ -1105,60 +1105,59 @@ export default function Address() {
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    background: 'rgba(0,0,0,0.5)',
-                    zIndex: 1050,
+                    background: 'rgba(0,0,0,0.45)',
+                    zIndex: 1200,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '20px'
+                    padding: '16px'
                 }}>
                     <div style={{
                         background: 'white',
                         borderRadius: '4px',
                         width: '100%',
-                        maxWidth: '400px',
-                        padding: '24px'
+                        maxWidth: '420px',
+                        padding: '20px 24px',
+                        boxShadow: '0 8px 20px rgba(0,0,0,0.12)'
                     }}>
-                        <h5 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: 500 }}>Confirm Delete</h5>
-                        <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#666' }}>
-                            Are you sure you want to delete this address?
+                        <p style={{ margin: '0 0 20px 0', fontSize: '16px', color: '#333', textAlign: 'center' }}>
+                        Are you sure you want to delete this address?
                         </p>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                                        <button
-                                            type="button"
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
+                            <button
+                                type="button"
                                 onClick={() => setShowDeleteConfirm(false)}
                                 style={{
-                                    background: 'white',
+                                    minWidth: 100,
+                                    padding: '10px 16px',
                                     border: '1px solid #ddd',
+                                    background: 'white',
                                     color: '#555',
-                                    padding: '10px 20px',
                                     borderRadius: '2px',
-                                    fontSize: '14px',
                                     cursor: 'pointer'
                                 }}
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
+                            >
+                                Cancel
+                            </button>
+                            <button
                                 type="button"
                                 onClick={handleConfirmDelete}
                                 style={{
+                                    minWidth: 100,
+                                    padding: '10px 16px',
+                                    border: 'none',
                                     background: '#ee4d2d',
                                     color: 'white',
-                                    border: 'none',
-                                    padding: '10px 20px',
                                     borderRadius: '2px',
-                                    fontSize: '14px',
-                                    fontWeight: 500,
                                     cursor: 'pointer'
                                 }}
                             >
                                 Delete
-                                        </button>
-                            </div>
+                            </button>
                         </div>
                     </div>
-                )}
+                </div>
+            )}
         </div>
     );
 }

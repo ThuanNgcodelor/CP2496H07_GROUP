@@ -1,9 +1,6 @@
 import axios from 'axios';
 
 const GHN_API_URL = 'https://dev-online-gateway.ghn.vn/shiip/public-api';
-
-// const GHN_TOKEN = 'd89f1716-d033-11f0-98c5-9a470762d0ab';
-// const GHN_SHOP_ID = '6147002';
 const GHN_TOKEN = '57404b9d-d3e9-11f0-a3d6-dac90fb956b5';
 const GHN_SHOP_ID = '198371';
 
@@ -16,30 +13,13 @@ const ghnApi = axios.create({
     }
 });
 
-if (import.meta.env.DEV) {
-    console.log('GHN API Config:', {
-        url: GHN_API_URL,
-        tokenSet: !!GHN_TOKEN && GHN_TOKEN !== 'demo-token-change-me',
-        tokenPreview: GHN_TOKEN ? `${GHN_TOKEN.substring(0, 10)}...` : 'NOT SET',
-        shopId: GHN_SHOP_ID
-    });
-}
-
 /**
- * Get all provinces
+ * Lấy danh sách tất cả tỉnh/thành phố
+ * @returns {Promise<Array>} - Promise trả về danh sách tỉnh/thành phố
  */
 export const getProvinces = async () => {
-
     try {
         const response = await ghnApi.get('/master-data/province');
-        
-        if (import.meta.env.DEV) {
-            console.log('GHN API Response:', {
-                status: response.status,
-                code: response.data?.code,
-                message: response.data?.message
-            });
-        }
         
         if (response.data?.code === 200 && response.data?.data) {
             return response.data.data;
@@ -51,7 +31,9 @@ export const getProvinces = async () => {
 };
 
 /**
- * Get districts by province ID
+ * Lấy danh sách quận/huyện theo tỉnh/thành phố
+ * @param {number} provinceId - ID của tỉnh/thành phố
+ * @returns {Promise<Array>} - Promise trả về danh sách quận/huyện
  */
 export const getDistricts = async (provinceId) => {
     try {
@@ -63,13 +45,14 @@ export const getDistricts = async (provinceId) => {
         }
         return [];
     } catch (error) {
-        console.error('Error fetching districts:', error);
         throw new Error('Failed to fetch districts');
     }
 };
 
 /**
- * Get wards by district ID
+ * Lấy danh sách phường/xã theo quận/huyện
+ * @param {number} districtId - ID của quận/huyện
+ * @returns {Promise<Array>} - Promise trả về danh sách phường/xã
  */
 export const getWards = async (districtId) => {
     try {
@@ -81,13 +64,14 @@ export const getWards = async (districtId) => {
         }
         return [];
     } catch (error) {
-        console.error('Error fetching wards:', error);
         throw new Error('Failed to fetch wards');
     }
 };
 
 /**
- * Calculate shipping fee
+ * Tính phí vận chuyển
+ * @param {Object} data - Dữ liệu tính phí vận chuyển
+ * @returns {Promise} - Promise trả về thông tin phí vận chuyển
  */
 export const calculateShippingFee = async (data) => {
     try {
@@ -97,8 +81,6 @@ export const calculateShippingFee = async (data) => {
         }
         throw new Error(response.data?.message || 'Failed to calculate shipping fee');
     } catch (error) {
-        console.error('Error calculating shipping fee:', error);
         throw error;
     }
 };
-

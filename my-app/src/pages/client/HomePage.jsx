@@ -21,10 +21,6 @@ export default function HomePage() {
 
         {/* Flash Sale Section */}
         <FlashSale />
-
-        {/* Shopee Mall Section */}
-        <ShopeeMall />
-
         {/* Top Search Section */}
         <TopSearch />
 

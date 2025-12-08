@@ -92,7 +92,7 @@ public class ProductController {
     //    }
     @PostMapping("/create")
     ResponseEntity<ProductDto> createProduct(@Valid @RequestPart("request") ProductCreateRequest request,
-                                            @RequestPart(value = "file", required = false) MultipartFile files,
+                                            @RequestPart(value = "file", required = false) MultipartFile[] files,
                                             HttpServletRequest httpServletRequest) {
         String userId = jwtUtil.ExtractUserId(httpServletRequest);
         request.setUserId(userId);
@@ -102,7 +102,7 @@ public class ProductController {
 
     @PutMapping("/update")
     ResponseEntity<ProductDto> updateProduct(@Valid @RequestPart("request") ProductUpdateRequest request,
-                                            @RequestPart(value = "file", required = false) MultipartFile files,
+                                            @RequestPart(value = "file", required = false) MultipartFile[] files,
                                             HttpServletRequest httpServletRequest) {
         String userId = jwtUtil.ExtractUserId(httpServletRequest);
         request.setUserId(userId);

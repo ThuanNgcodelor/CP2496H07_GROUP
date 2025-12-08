@@ -11,6 +11,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -39,6 +41,20 @@ public class FileServiceImpl implements FileService {
                 .filePath(filePath).build()
         );
         return uuid;
+    }
+
+    @Override
+    public List<String> uploadMultipleImagesToFileSystem(List<MultipartFile> files) {
+        List<String> uploadedIds = new ArrayList<>();
+        
+        for (MultipartFile file : files) {
+            if (file != null && !file.isEmpty()) {
+                String uuid = uploadImageToFileSystem(file);
+                uploadedIds.add(uuid);
+            }
+        }
+        
+        return uploadedIds;
     }
 
     @Override
