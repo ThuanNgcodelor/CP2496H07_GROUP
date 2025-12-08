@@ -1,0 +1,115 @@
+{
+  "petCareKnowledge": [
+    {
+      "category": "Nutrition",
+      "faqs": [
+        { "question": "What food is best for puppies?", "answer": "Puppies need high-quality puppy food rich in protein, DHA, and essential vitamins to support growth. Feed them 3-4 times a day until 6 months old." },
+        { "question": "How often should I feed my adult dog?", "answer": "Adult dogs typically eat twice a day. Large breeds may benefit from two smaller meals to prevent bloating." },
+        { "question": "Can cats drink cow milk?", "answer": "Most adult cats are lactose intolerant. Avoid cow milk; instead provide fresh water or special cat milk." },
+        { "question": "What treats are safe for dogs?", "answer": "Carrots, apple slices, plain cooked chicken, or dog-safe treats. Avoid chocolate, grapes, and onions." },
+        { "question": "How can I prevent obesity in my cat?", "answer": "Feed portion-controlled meals, provide interactive toys, and avoid free-feeding dry food." },
+        { "question": "Can dogs eat bones?", "answer": "Cooked bones can splinter and are dangerous. Raw meaty bones may be offered occasionally under supervision, but many vets recommend safer alternatives." },
+        { "question": "Is it safe to give cats tuna?", "answer": "Tuna in small amounts is fine, but too much can cause mercury poisoning and nutritional imbalance. Use cat-formulated tuna treats instead." },
+        { "question": "How do I know if my dog has food allergies?", "answer": "Common signs are itching, ear infections, and gastrointestinal issues. A vet may recommend an elimination diet with novel proteins." },
+        { "question": "What should I feed a pregnant dog?", "answer": "High-quality puppy food supports extra calories, protein, and calcium needed during pregnancy and lactation." },
+        { "question": "Can pets eat human baby food?", "answer": "Only plain baby food without onion, garlic, or harmful additives. Always check labels." }
+      ]
+    },
+    {
+      "category": "Grooming",
+      "faqs": [
+        { "question": "How often should I bathe my dog?", "answer": "Most dogs need a bath every 4-6 weeks, depending on breed and activity level." },
+        { "question": "Do cats need baths?", "answer": "Cats usually groom themselves. Bathing is only needed if they are very dirty, greasy, or have skin conditions." },
+        { "question": "How often should I brush my cat?", "answer": "Short-haired cats should be brushed once a week, long-haired cats daily to avoid matting." },
+        { "question": "When should I brush my dog's teeth?", "answer": "At least 2–3 times per week. Use pet-safe toothpaste only." },
+        { "question": "Do dogs need professional grooming?", "answer": "Long-haired and double-coated breeds benefit from regular professional grooming every 6–8 weeks." },
+        { "question": "How do I trim my cat’s nails?", "answer": "Use a cat nail clipper, cut only the sharp tip, and avoid the pink quick." },
+        { "question": "What should I do if my dog hates baths?", "answer": "Introduce bathing slowly, use treats, non-slip mats, and lukewarm water. Keep sessions short and positive." }
+      ]
+    },
+    {
+      "category": "Health & Vaccination",
+      "faqs": [
+        { "question": "What vaccines does my puppy need?", "answer": "Core vaccines include Distemper, Parvovirus, Adenovirus, and Rabies. Non-core vaccines depend on lifestyle." },
+        { "question": "What vaccines does my kitten need?", "answer": "FVRCP (Feline Viral Rhinotracheitis, Calicivirus, Panleukopenia) and Rabies. Additional vaccines based on risk." },
+        { "question": "How often should I deworm my cat?", "answer": "Kittens every 2 weeks until 12 weeks old, then every 3 months for adults." },
+        { "question": "What are symptoms of heartworm in dogs?", "answer": "Coughing, fatigue, weight loss, and difficulty breathing. Prevent with monthly medication." },
+        { "question": "How can I tell if my cat is sick?", "answer": "Look for changes in appetite, litter box habits, grooming, and activity. Hiding, vomiting, or sudden weight loss are red flags." },
+        { "question": "What are signs of arthritis in older dogs?", "answer": "Stiffness, limping, reluctance to jump, and decreased activity levels." },
+        { "question": "What age should I spay or neuter my pet?", "answer": "Most vets recommend around 6 months, but it may vary depending on breed and health." }
+      ]
+    },
+    {
+      "category": "Training & Behavior",
+      "faqs": [
+        { "question": "How do I potty train a puppy?", "answer": "Take the puppy outside regularly, especially after meals or naps. Reward them when they go outside. Be patient and consistent." },
+        { "question": "How to stop a cat from biting?", "answer": "Provide toys for play, avoid rough hand play, and redirect biting to appropriate objects." },
+        { "question": "What causes dogs to bark excessively?", "answer": "Boredom, anxiety, or alerting behavior. Provide exercise, training, and enrichment." },
+        { "question": "How do I stop my cat from scratching furniture?", "answer": "Provide scratching posts, use catnip to attract them, and place double-sided tape on furniture edges." },
+        { "question": "Why does my dog chew furniture?", "answer": "Chewing can be due to teething, boredom, or anxiety. Provide chew toys, exercise, and crate training if needed." },
+        { "question": "How to stop resource guarding in dogs?", "answer": "Practice trade games, reward calm behavior, and never forcibly take items away. Consult a trainer for severe cases." },
+        { "question": "Why does my cat knead blankets?", "answer": "Kneading is a comforting behavior from kittenhood, linked to nursing. It usually signals relaxation and affection." }
+      ]
+    },
+    {
+      "category": "Safety & Environment",
+      "faqs": [
+        { "question": "What plants are toxic to cats?", "answer": "Lilies, poinsettias, aloe vera, and tulips. Keep these away from cats." },
+        { "question": "How do I pet-proof my home?", "answer": "Secure trash bins, cover electrical cords, remove toxic plants, and store chemicals safely." },
+        { "question": "Is it safe to let my cat outside?", "answer": "Outdoor cats face risks of traffic, predators, and disease. Consider supervised outdoor time or catios." },
+        { "question": "How do I keep my dog safe in the car?", "answer": "Use a pet seatbelt, carrier, or crate. Never let pets ride in the driver’s lap." },
+        { "question": "What should I do during fireworks?", "answer": "Keep pets indoors, close curtains, play calming music, and provide a safe hiding spot." }
+      ]
+    },
+    {
+      "category": "Emergency & First Aid",
+      "faqs": [
+        { "question": "What should I do if my dog eats chocolate?", "answer": "Contact a vet immediately. Chocolate is toxic, especially dark chocolate. Symptoms include vomiting, tremors, and rapid heartbeat." },
+        { "question": "What are signs of heatstroke in pets?", "answer": "Heavy panting, drooling, collapse, red gums, and vomiting. Move the pet to a cool area and seek emergency care." },
+        { "question": "What should be in a pet first aid kit?", "answer": "Gauze, bandages, antiseptic wipes, tweezers, digital thermometer, saline solution, and vet emergency contacts." },
+        { "question": "What should I do if my cat has a seizure?", "answer": "Keep them safe from injury, do not restrain, time the seizure, and call your vet immediately." },
+        { "question": "How can I stop bleeding from a pet’s wound?", "answer": "Apply pressure with a clean cloth or bandage and seek veterinary care if bleeding does not stop." }
+      ]
+    },
+    {
+      "category": "Lifestyle & Enrichment",
+      "faqs": [
+        { "question": "How much exercise does a Labrador need?", "answer": "Labradors need at least 1-2 hours of exercise daily to stay healthy." },
+        { "question": "What toys are best for indoor cats?", "answer": "Interactive toys like feather wands, laser pointers, and puzzle feeders keep cats engaged." },
+        { "question": "How do I entertain my dog indoors?", "answer": "Play fetch in a hallway, teach tricks, use puzzle toys, or create a mini obstacle course." },
+        { "question": "Do pets need companions?", "answer": "Some pets thrive with company, but it depends on species, breed, and individual temperament." },
+        { "question": "How can I enrich my senior pet’s life?", "answer": "Gentle play, short walks, interactive toys, and plenty of affection help keep them engaged." }
+      ]
+    },
+    {
+      "category": "Puppy & Kitten Care",
+      "faqs": [
+        { "question": "How often should I feed a kitten?", "answer": "Kittens need small, frequent meals 3–4 times a day until 6 months old, then transition to adult feeding schedules." },
+        { "question": "When can I take my puppy outside?", "answer": "Wait until at least 1 week after their final set of core vaccines (usually 16 weeks)." },
+        { "question": "How do I socialize a kitten?", "answer": "Expose them gently to new people, sounds, and handling between 2–9 weeks of age." },
+        { "question": "Why is my puppy biting me?", "answer": "Puppies bite when teething and exploring. Redirect to chew toys and avoid rough play." },
+        { "question": "What age should I start training my puppy?", "answer": "Basic training can start as early as 8 weeks using short, fun, reward-based sessions." }
+      ]
+    },
+    {
+      "category": "Senior Pet Care",
+      "faqs": [
+        { "question": "How do I care for an older dog?", "answer": "Provide softer bedding, shorter walks, regular vet checkups, and joint supplements if needed." },
+        { "question": "What changes happen in senior cats?", "answer": "Older cats may sleep more, lose weight, and need easier access to litter boxes and food." },
+        { "question": "Do older pets need special diets?", "answer": "Yes, senior diets are lower in calories but rich in fiber, protein, and joint-supporting nutrients." },
+        { "question": "How often should senior pets visit the vet?", "answer": "At least every 6 months for preventive checkups and blood work." },
+        { "question": "What are signs of cognitive decline in pets?", "answer": "Confusion, pacing, changes in sleep, and accidents indoors. Consult your vet." }
+      ]
+    },
+    {
+      "category": "General Tips",
+      "faqs": [
+        { "question": "How often should my pet visit the vet?", "answer": "At least once a year. Senior pets may need checkups every 6 months." },
+        { "question": "Should I spay or neuter my pet?", "answer": "Yes. It helps prevent cancers, reduces roaming, and lowers the chance of unwanted litters." },
+        { "question": "How can I help my pet during fireworks?", "answer": "Keep them indoors, provide a safe hiding spot, and use calming aids if needed." },
+        { "question": "What’s the best way to travel with pets?", "answer": "Use carriers, take breaks for dogs, and ensure cats remain secured during trips." },
+        { "question": "How do I introduce a new pet to my home?", "answer": "Introduce gradually, keep separate spaces at first, and use supervised short interactions." }
+      ]
+    }
+  ]
+}

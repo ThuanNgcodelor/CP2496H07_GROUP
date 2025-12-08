@@ -1,0 +1,80 @@
+/* Nền đỏ tổng thể (giống code gốc) */
+body { background-color: red; }
+
+/* Chiều cao khung */
+.height-100 { height: 100vh; }
+
+/* Thẻ card chính */
+.custom-card {
+    width: 420px;
+    border: none;
+    height: 300px;
+    box-shadow: 0px 5px 20px 0px #d2dae3;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Tiêu đề đỏ */
+.custom-card h6 {
+    color: red;
+    font-size: 20px;
+}
+
+.custom-card h6 {
+    position: static !important;  /* bỏ absolute */
+    margin: 0 0 .5rem !important;
+    text-align: center;
+    line-height: 1.25;
+}
+
+
+/* Ô nhập OTP */
+.inputs input {
+    width: 40px;
+    height: 40px;
+}
+
+/* Bỏ shadow khi focus & viền đỏ */
+.form-control:focus {
+    box-shadow: none;
+    border: 2px solid red;
+}
+
+/* Nút Validate */
+.validate {
+    border-radius: 20px;
+    height: 40px;
+    background-color: red;
+    border: 1px solid red;
+    width: 140px;
+}
+
+/* Card nhỏ phía dưới */
+.card-2 {
+    background-color: #fff;
+    padding: 10px;
+    width: 350px;
+    height: 100px;
+    bottom: -50px;
+    left: 20px;
+    position: absolute;
+    border-radius: 5px;
+}
+
+.card-2 .content {
+    margin-top: 50px;
+}
+
+.card-2 .content a {
+    color: red;
+}
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    margin: 0;
+}
