@@ -1,15 +1,18 @@
 package com.example.userservice.controller;
 
+import com.example.userservice.dto.FullShopRegistrationRequest;
 import com.example.userservice.enums.Role;
 import com.example.userservice.jwt.JwtUtil;
 import com.example.userservice.model.RoleRequest;
 import com.example.userservice.request.RoleRequestRequest;
 import com.example.userservice.request.RoleRequestResponse;
+import com.example.userservice.request.ShopOwnerRegisterRequest;
 import com.example.userservice.service.role.RoleRequestService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +22,8 @@ import java.util.List;
 @RequestMapping("/v1/user/role-requests")
 @RequiredArgsConstructor
 public class RoleRequestController {
-    
+
+    @Autowired
     private final RoleRequestService roleRequestService;
     private final JwtUtil jwtUtil;
     private final ModelMapper modelMapper;
@@ -29,44 +33,50 @@ public class RoleRequestController {
         return ResponseEntity.ok(modelMapper.map(roleRequestService.getRoleRequestById(requestId),RoleRequestResponse.class));
     }
 
-    @PostMapping
-    public ResponseEntity<RoleRequestResponse> createRoleRequest(
-            @Valid @RequestBody RoleRequestRequest request,
-            HttpServletRequest httpRequest) {
 
-        System.out.println("Received role request - role: " + request.getRole() + ", reason: " + request.getReason());
-        
-        String userId = jwtUtil.ExtractUserId(httpRequest);
-        System.out.println("Extracted userId: " + userId);
-        
-        // 验证 role 是否为空
-        if (request.getRole() == null || request.getRole().trim().isEmpty()) {
-            throw new IllegalArgumentException("Role cannot be null or empty");
-        }
-        
-        Role requestedRole;
-        try {
-            requestedRole = Role.valueOf(request.getRole().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid role: " + request.getRole());
-        }
-        
-        RoleRequest created = roleRequestService.createRoleRequest(
-                userId,
-                requestedRole,
-                request.getReason()
-        );
-
-        RoleRequestResponse response = RoleRequestResponse.builder()
-                .id(created.getId())
-                .userId(created.getUser().getId())
-                .requestedRole(created.getRequestedRole().name())
-                .reason(created.getReason())
-                .status(created.getStatus().name())
-                .build();
-
-        return ResponseEntity.ok(response);
+    @PostMapping("/createShopOwner")
+    ResponseEntity<?> createShopOwner(HttpServletRequest request,
+                                                        @Valid @RequestBody FullShopRegistrationRequest fullRegistrationRequest){
+        String userId = jwtUtil.ExtractUserId(request);
+        roleRequestService.createShopOwner(userId,fullRegistrationRequest);
+        return  ResponseEntity.ok().build();
     }
+
+//    @PostMapping
+//    public ResponseEntity<RoleRequestResponse> createRoleRequest(
+//            @Valid @RequestBody RoleRequestRequest request,
+//            HttpServletRequest httpRequest) {
+//
+//
+//        String userId = jwtUtil.ExtractUserId(httpRequest);
+//
+//        if (request.getRole() == null || request.getRole().trim().isEmpty()) {
+//            throw new IllegalArgumentException("Role cannot be null or empty");
+//        }
+//
+//        Role requestedRole;
+//        try {
+//            requestedRole = Role.valueOf(request.getRole().toUpperCase());
+//        } catch (IllegalArgumentException e) {
+//            throw new IllegalArgumentException("Invalid role: " + request.getRole());
+//        }
+//
+//        RoleRequest created = roleRequestService.createRoleRequest(
+//                userId,
+//                requestedRole,
+//                request.getReason()
+//        );
+//
+//        RoleRequestResponse response = RoleRequestResponse.builder()
+//                .id(created.getId())
+//                .userId(created.getUser().getId())
+//                .requestedRole(created.getRequestedRole().name())
+//                .reason(created.getReason())
+//                .status(created.getStatus().name())
+//                .build();
+//
+//        return ResponseEntity.ok(response);
+//    }
 
 
     @GetMapping("/pending")

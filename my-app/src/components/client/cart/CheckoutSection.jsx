@@ -20,7 +20,9 @@ export function CheckoutSection({
   onOpenAddressModal,
   onRefreshAddresses,
   onCheckout,
-  navigate
+  navigate,
+  paymentMethod,
+  onPaymentMethodChange
 }) {
   const totalWithShipping = selectedSubtotal + (shippingFee || 0);
   return (
@@ -94,6 +96,35 @@ export function CheckoutSection({
           border-radius: 999px;
           font-size: 12px;
         }
+        .payment-box {
+          border: 1px solid #f0f0f0;
+          border-radius: 10px;
+          padding: 12px;
+          margin-top: 12px;
+          background: #fafafa;
+        }
+        .payment-option {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px;
+          border: 1px solid #f0f0f0;
+          border-radius: 8px;
+          cursor: pointer;
+          margin-bottom: 8px;
+          transition: border-color 0.15s ease, background 0.15s ease;
+        }
+        .payment-option:hover {
+          border-color: #ee4d2d;
+          background: #fff7f3;
+        }
+        .payment-option.selected {
+          border-color: #ee4d2d;
+          background: #fff5f0;
+        }
+        .payment-option small {
+          color: #777;
+        }
       `}</style>
       <div className="address-selection col-md-12 col-lg-6 mb-3">
         <h5>
@@ -135,25 +166,39 @@ export function CheckoutSection({
             </div>
             <div className="d-flex gap-2 mt-2">
               <button
-                className="btn btn-outline-primary btn-sm"
+                className="btn btn-outline-primary btn-sm d-inline-flex align-items-center"
                 type="button"
                 onClick={onOpenAddressModal}
+                style={{
+                  borderRadius: "6px",
+                  fontWeight: 600,
+                  letterSpacing: "0.3px",
+                  textTransform: "uppercase",
+                  padding: "8px 14px",
+                  color: "#111",
+                }}
               >
-                {selectedAddressId
-                  ? "Change Address"
-                  : "Select Address"}
+                <i className="fa fa-angle-left me-2"></i>
+                {selectedAddressId ? "Change Address" : "Select Address"}
               </button>
               <button
-                className="btn btn-outline-secondary btn-sm"
+                className="btn btn-light btn-sm d-inline-flex align-items-center justify-content-center"
                 type="button"
                 onClick={onRefreshAddresses}
                 disabled={addressLoading}
                 title="Refresh addresses"
+                style={{
+                  borderRadius: "6px",
+                  border: "1px solid #dcdcdc",
+                  width: "42px",
+                  height: "38px",
+                }}
               >
                 <i
                   className={`fa fa-refresh ${
                     addressLoading ? "fa-spin" : ""
                   }`}
+                  style={{ color: "#666" }}
                 ></i>
               </button>
             </div>
@@ -193,6 +238,44 @@ export function CheckoutSection({
         <div className="checkout-card p-4 mt-10 mt-lg-0">
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h5>Order Summary</h5>
+          </div>
+
+          <div className="payment-box">
+            <div className="d-flex align-items-center justify-content-between mb-2">
+              <h6 className="mb-0">Payment Method</h6>
+            </div>
+            <div
+              className={`payment-option ${paymentMethod === "COD" ? "selected" : ""}`}
+              onClick={() => onPaymentMethodChange("COD")}
+            >
+              <input
+                type="radio"
+                name="payment-method"
+                value="COD"
+                checked={paymentMethod === "COD"}
+                onChange={() => onPaymentMethodChange("COD")}
+              />
+              <div>
+                <div style={{ fontWeight: 600 }}>Cash on Delivery (COD)</div>
+                <small>Pay when you receive the package (supported).</small>
+              </div>
+            </div>
+            <div
+              className={`payment-option ${paymentMethod === "CARD" ? "selected" : ""}`}
+              onClick={() => onPaymentMethodChange("CARD")}
+            >
+              <input
+                type="radio"
+                name="payment-method"
+                value="CARD"
+                checked={paymentMethod === "CARD"}
+                onChange={() => onPaymentMethodChange("CARD")}
+              />
+              <div>
+                <div style={{ fontWeight: 600 }}>Card (Demo)</div>
+                <small>Mock payment, no real charge applied.</small>
+              </div>
+            </div>
           </div>
 
           <div className="summary-row">

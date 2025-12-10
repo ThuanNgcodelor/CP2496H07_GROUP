@@ -1,5 +1,6 @@
 package com.example.userservice.service.role;
 
+import com.example.userservice.dto.FullShopRegistrationRequest;
 import com.example.userservice.enums.RequestStatus;
 import com.example.userservice.enums.Role;
 import com.example.userservice.exception.NotFoundException;
@@ -7,6 +8,8 @@ import com.example.userservice.model.*;
 import com.example.userservice.repository.RoleRequestRepository;
 import com.example.userservice.repository.ShopOwnerRepository;
 import com.example.userservice.repository.UserRepository;
+import com.example.userservice.request.RoleRequestRequest;
+import com.example.userservice.request.ShopOwnerRegisterRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,7 +23,6 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class RoleRequestService {
-    
     private final RoleRequestRepository roleRequestRepository;
     private final UserRepository userRepository;
     private final ShopOwnerRepository shopOwnerRepository;
@@ -29,34 +31,33 @@ public class RoleRequestService {
         return roleRequestRepository.findById(requestId)
                 .orElseThrow(() -> new NotFoundException("404"));
     }
-    
-    public RoleRequest createRoleRequest(String userId, Role requestedRole, String reason) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Kiểm tra xem đã có request pending chưa
-        Optional<RoleRequest> existingRequest = roleRequestRepository
-                .findByUserIdAndRequestedRoleAndStatus(userId, requestedRole, RequestStatus.PENDING);
-
-        if (existingRequest.isPresent()) {
-            throw new RuntimeException("You already have a pending request for this role");
+    private void createRoleRequestRecord(User user, RoleRequestRequest roleRequestData) {
+        // Kiểm tra spam request
+        boolean existsPending = roleRequestRepository.existsByUserAndStatus(user, RequestStatus.PENDING);
+        if (existsPending) {
+            throw new RuntimeException("Your request has already been pending.");
         }
 
-        // Kiểm tra xem user đã có role này chưa
-        if (user.getRoles().contains(requestedRole)) {
-            throw new RuntimeException("You already have this role");
-        }
-
-        RoleRequest request = RoleRequest.builder()
+        RoleRequest newRequest = RoleRequest.builder()
                 .user(user)
-                .requestedRole(requestedRole)
-                .reason(reason)
+                .requestedRole(Role.valueOf(roleRequestData.getRole()))
+                .reason(roleRequestData.getReason())
                 .status(RequestStatus.PENDING)
                 .build();
 
-        return roleRequestRepository.save(request);
+        roleRequestRepository.save(newRequest);
     }
-    
+
+    @Transactional
+    public void createShopOwner(String userId, FullShopRegistrationRequest fullRequest) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        createShopOwnerProfile(user, fullRequest.getShopDetails());
+
+        createRoleRequestRecord(user, fullRequest.getRoleRequest());
+    }
     @Transactional
     public RoleRequest approveRequest(String requestId, String adminId, String adminNote) {
         RoleRequest request = roleRequestRepository.findById(requestId)
@@ -77,9 +78,9 @@ public class RoleRequestService {
         userRepository.saveAndFlush(user);
         
         // Create ShopOwner profile if role is SHOP_OWNER
-        if (requestedRole == Role.SHOP_OWNER) {
-            createShopOwnerProfile(userId);
-        }
+//        if (requestedRole == Role.SHOP_OWNER) {
+//            createShopOwnerProfile(userId);
+//        }
         
         request.setStatus(RequestStatus.APPROVED);
         request.setReviewedBy(adminId);
@@ -114,23 +115,46 @@ public class RoleRequestService {
         return roleRequestRepository.findByUserIdOrderByCreationTimestampDesc(userId);
     }
 
-    private void createShopOwnerProfile(String userId) {
-        if (shopOwnerRepository.existsById(userId))
+    private void createShopOwnerProfile(User user, ShopOwnerRegisterRequest request) {
+        // Kiểm tra nếu đã có Shop rồi thì không tạo mới (hoặc throw exception tùy logic)
+        if (shopOwnerRepository.existsById(user.getId())) {
             return;
+        }
 
-        
-        User user = userRepository.getReferenceById(userId);
+        // Tạo chuỗi địa chỉ hiển thị
+        String fullAddress = String.format("%s, %s, %s, %s",
+                request.getStreetAddress(),
+                request.getWardName(),
+                request.getDistrictName(),
+                request.getProvinceName());
+
         ShopOwner shopOwner = ShopOwner.builder()
-                .user(user)
-                .shopName("")
-                .ownerName("")
-                .address("")
-                .verified(true)
+                .user(user) // User đã map ID
+                .shopName(request.getShopName())   // SỬA LỖI 1: Lấy từ request
+                .ownerName(request.getOwnerName()) // SỬA LỖI 1: Lấy từ request
+                .phone(request.getPhone())         // Đừng quên số điện thoại
+                .address(fullAddress)              // SỬA LỖI 3: Lưu địa chỉ full
+
+                // Logic mặc định
+                .verified(false)      // SỬA LỖI 2: Mới tạo phải là false chờ duyệt
                 .totalRatings(0)
                 .followersCount(0)
                 .followingCount(0)
+
+                // Mapping địa chỉ GHN
+                .provinceId(request.getProvinceId())
+                .provinceName(request.getProvinceName())
+                .districtId(request.getDistrictId())
+                .districtName(request.getDistrictName())
+                .wardCode(request.getWardCode())
+                .wardName(request.getWardName())
+                .streetAddress(request.getStreetAddress())
+
+                // Tọa độ
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
                 .build();
-        
+
         shopOwnerRepository.save(shopOwner);
     }
 }

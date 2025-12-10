@@ -34,6 +34,7 @@ export function Cart() {
   const [updatingQuantities, setUpdatingQuantities] = useState(new Set());
   const [shippingFee, setShippingFee] = useState(null);
   const [calculatingShippingFee, setCalculatingShippingFee] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("COD");
   const debounceTimeouts = useRef({});
   const lastClickTime = useRef({});
 
@@ -489,6 +490,15 @@ export function Cart() {
       return;
     }
 
+    if (paymentMethod === "CARD") {
+      await Swal.fire({
+        icon: "info",
+        title: "Card payment (demo)",
+        text: "This is a mock card payment. No real charge will occur.",
+        confirmButtonText: "Continue"
+      });
+    }
+
     setOrderLoading(true);
     try {
       const orderData = {
@@ -499,6 +509,7 @@ export function Cart() {
           unitPrice: it.unitPrice || it.price,
         })),
         addressId: selectedAddressId,
+        paymentMethod: paymentMethod || "COD",
       };
 
       Swal.fire({
@@ -737,6 +748,8 @@ export function Cart() {
               onRefreshAddresses={refreshAddresses}
               onCheckout={handleCheckout}
               navigate={navigate}
+              paymentMethod={paymentMethod}
+              onPaymentMethodChange={setPaymentMethod}
             />
           </div>
         </section>

@@ -114,6 +114,8 @@ const MOCK_CONVERSATIONS = [
 ];
 
 export default function ChatBotWidget() {
+  // Chỉ render phía client để tránh lỗi khi SSR/ssg
+  const [isClient, setIsClient] = React.useState(false);
   const [open, setOpen] = React.useState(false);
   const [minimized, setMinimized] = React.useState(false);
   const [selectedChat, setSelectedChat] = React.useState(null);
@@ -129,6 +131,10 @@ export default function ChatBotWidget() {
   const [productImageUrl, setProductImageUrl] = React.useState(null);
   const [shopNames, setShopNames] = React.useState({}); // Cache shop names: { userId: shopName }
   const messagesEndRef = React.useRef(null);
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Get current user ID
   React.useEffect(() => {
@@ -433,6 +439,8 @@ export default function ChatBotWidget() {
     
     return filtered;
   }, [conversations, searchQuery, filterType]);
+
+  if (!isClient) return null;
 
   return (
     <>

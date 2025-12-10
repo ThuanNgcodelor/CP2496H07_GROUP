@@ -3,6 +3,7 @@ package com.example.userservice.repository;
 import com.example.userservice.enums.Role;
 import com.example.userservice.model.RoleRequest;
 import com.example.userservice.enums.RequestStatus;
+import com.example.userservice.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -19,4 +20,6 @@ public interface RoleRequestRepository extends JpaRepository<RoleRequest, String
     Optional<RoleRequest> findByUserIdAndRequestedRoleAndStatus(String userId, Role requestedRole, RequestStatus status);
     
     long countByStatus(RequestStatus status);
+
+    boolean existsByUserAndStatus(User user, RequestStatus requestStatus);
 }
