@@ -280,10 +280,6 @@ export default function AddProductPage() {
             newErrors.price = 'Invalid product price';
         }
 
-        if (!formData.categoryId) {
-            newErrors.categoryId = 'Please select a category';
-        }
-
         if (!formData.status) {
             newErrors.status = 'Please select status';
         }
@@ -334,7 +330,8 @@ export default function AddProductPage() {
                 price: parseFloat(formData.price),
                 originalPrice: parseFloat(formData.originalPrice) || parseFloat(formData.price),
                 discountPercent: parseFloat(formData.discountPercent) || 0,
-                categoryId: formData.categoryId,
+                // Category is optional: send null/undefined if not selected
+                categoryId: formData.categoryId || null,
                 status: (formData.status || 'IN_STOCK').toUpperCase(),
                 sizes: sizesData,
                 attributes: attributesMap
@@ -698,21 +695,20 @@ export default function AddProductPage() {
                             </div>
                             <div className="card-body">
                                 <div className="mb-3">
-                                    <label className="form-label">Category <span style={{ color: 'red' }}>*</span></label>
+                                    <label className="form-label">Category (optional)</label>
                                     <select
-                                        className={`form-select ${errors.categoryId ? 'is-invalid' : ''}`}
+                                        className="form-select"
                                         name="categoryId"
                                         value={formData.categoryId}
                                         onChange={handleInputChange}
                                     >
-                                        <option value="">Select a category</option>
+                                        <option value="">No category</option>
                                         {categories.map(category => (
                                             <option key={category.id} value={category.id}>
                                                 {category.name}
                                             </option>
                                         ))}
                                     </select>
-                                    {errors.categoryId && <div className="invalid-feedback">{errors.categoryId}</div>}
                                 </div>
 
                                 <hr />

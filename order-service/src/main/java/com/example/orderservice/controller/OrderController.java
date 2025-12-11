@@ -3,14 +3,7 @@ package com.example.orderservice.controller;
 import com.example.orderservice.client.GhnApiClient;
 import com.example.orderservice.client.StockServiceClient;
 import com.example.orderservice.client.UserServiceClient;
-import com.example.orderservice.dto.AddressDto;
-import com.example.orderservice.dto.FrontendOrderRequest;
-import com.example.orderservice.dto.OrderDto;
-import com.example.orderservice.dto.OrderItemDto;
-import com.example.orderservice.dto.ProductDto;
-import com.example.orderservice.dto.ShopOwnerDto;
-import com.example.orderservice.dto.SizeDto;
-import com.example.orderservice.dto.UpdateOrderRequest;
+import com.example.orderservice.dto.*;
 import com.example.orderservice.jwt.JwtUtil;
 import com.example.orderservice.model.Order;
 import com.example.orderservice.repository.ShippingOrderRepository;
@@ -62,14 +55,17 @@ public class OrderController {
                     
                     // Build full address string
                     StringBuilder fullAddressBuilder = new StringBuilder();
-                    if (address.getStreetAddress() != null && !address.getStreetAddress().isBlank()) {
+                    if (address.getStreetAddress() != null && !address.getStreetAddress().trim().isEmpty()) {
                         fullAddressBuilder.append(address.getStreetAddress());
                     }
-                    if (address.getProvince() != null && !address.getProvince().isBlank()) {
+                    // Use provinceName instead of deprecated getProvince()
+                    String province = address.getProvinceName() != null ? address.getProvinceName() : 
+                                     (address.getProvince() != null ? address.getProvince() : null);
+                    if (province != null && !province.trim().isEmpty()) {
                         if (fullAddressBuilder.length() > 0) {
                             fullAddressBuilder.append(", ");
                         }
-                        fullAddressBuilder.append(address.getProvince());
+                        fullAddressBuilder.append(province);
                     }
                     if (fullAddressBuilder.length() > 0) {
                         dto.setFullAddress(fullAddressBuilder.toString());
@@ -157,11 +153,24 @@ public class OrderController {
     @PostMapping("/create-from-cart")
     ResponseEntity<?> createOrderFromCart(@RequestBody FrontendOrderRequest request, HttpServletRequest httpRequest) {
         try {
-            orderService.orderByKafka(request, httpRequest);
-            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                    "message", "Order has been sent to Kafka.",
-                    "status", "PENDING"
-            ));
+            // If VNPay payment, create order synchronously to get orderId
+            String paymentMethod = request.getPaymentMethod();
+            if ("VNPAY".equalsIgnoreCase(paymentMethod) || "CARD".equalsIgnoreCase(paymentMethod)) {
+                Order order = orderService.createOrderSync(request, httpRequest);
+                return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                        "message", "Order created successfully.",
+                        "status", "PENDING",
+                        "orderId", order.getId(),
+                        "id", order.getId()
+                ));
+            } else {
+                // COD - use async Kafka
+                orderService.orderByKafka(request, httpRequest);
+                return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                        "message", "Order has been sent to Kafka.",
+                        "status", "PENDING"
+                ));
+            }
         } catch (RuntimeException e) {
             if (e.getMessage().contains("Insufficient stock")) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
@@ -527,6 +536,106 @@ public class OrderController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
             }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    /**
+     * Internal endpoint for payment-service to update order status
+     * Should be called when payment succeeds/fails
+     */
+    @PutMapping("/internal/update-payment-status/{orderId}")
+    public ResponseEntity<?> updatePaymentStatus(
+            @PathVariable String orderId,
+            @RequestParam String paymentStatus) {
+        try {
+            // Verify internal call (can add header check if needed)
+            if ("PAID".equalsIgnoreCase(paymentStatus)) {
+                Order updatedOrder = orderService.updateOrderStatus(orderId, "PAID");
+                return ResponseEntity.ok(Map.of(
+                        "message", "Order status updated to PAID",
+                        "orderId", updatedOrder.getId(),
+                        "status", updatedOrder.getOrderStatus().name()
+                ));
+            } else if ("FAILED".equalsIgnoreCase(paymentStatus)) {
+                // Rollback stock and cancel order when payment fails
+                orderService.rollbackOrderStock(orderId);
+                return ResponseEntity.ok(Map.of(
+                        "message", "Payment failed, order cancelled and stock rolled back",
+                        "orderId", orderId
+                ));
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid payment status"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "error", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Rollback order (cancel and restore stock)
+     * Can be called manually or by scheduled job for expired payments
+     */
+    @PutMapping("/internal/rollback/{orderId}")
+    public ResponseEntity<?> rollbackOrder(@PathVariable String orderId) {
+        try {
+            orderService.rollbackOrderStock(orderId);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Order rolled back successfully",
+                    "orderId", orderId
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "error", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Internal endpoint for payment-service to create order after payment success
+     * Called when payment succeeds and order doesn't exist yet
+     */
+    @PostMapping("/internal/create-from-payment")
+    public ResponseEntity<?> createOrderFromPayment(@RequestBody Map<String, Object> orderData) {
+        try {
+            String userId = (String) orderData.get("userId");
+            String addressId = (String) orderData.get("addressId");
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> selectedItemsRaw = (List<Map<String, Object>>) orderData.get("selectedItems");
+            
+            if (userId == null || addressId == null || selectedItemsRaw == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Missing required fields: userId, addressId, selectedItems"
+                ));
+            }
+
+            // Convert Map to SelectedItemDto
+            List<SelectedItemDto> selectedItems = selectedItemsRaw.stream()
+                    .map(item -> {
+                        SelectedItemDto dto = new SelectedItemDto();
+                        dto.setProductId((String) item.get("productId"));
+                        dto.setSizeId((String) item.get("sizeId"));
+                        dto.setQuantity(((Number) item.get("quantity")).intValue());
+                        dto.setUnitPrice(((Number) item.get("unitPrice")).doubleValue());
+                        return dto;
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+
+            Order order = orderService.createOrderFromPayment(userId, addressId, selectedItems);
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                    "message", "Order created successfully from payment",
+                    "orderId", order.getId(),
+                    "status", order.getOrderStatus().name()
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "error", e.getMessage()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "error", "Failed to create order: " + e.getMessage()
+            ));
         }
     }
 }

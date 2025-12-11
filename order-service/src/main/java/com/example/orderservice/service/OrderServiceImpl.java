@@ -138,6 +138,128 @@ public class OrderServiceImpl implements OrderService {
         kafkaTemplate.send(orderTopic.name(), kafkaRequest);
     }
 
+    @Override
+    @Transactional
+    public Order createOrderSync(FrontendOrderRequest orderRequest, HttpServletRequest request) {
+        String author = request.getHeader("Authorization");
+        CartDto cartDto = stockServiceClient.getCart(author).getBody();
+        AddressDto address = userServiceClient.getAddressById(orderRequest.getAddressId()).getBody();
+        if (address == null)
+            throw new RuntimeException("Address not found for ID: " + orderRequest.getAddressId());
+        if(cartDto == null || cartDto.getItems().isEmpty())
+            throw new RuntimeException("Cart not found or empty");
+
+        // Validate stock
+        for (SelectedItemDto item : orderRequest.getSelectedItems()) {
+            if (item.getSizeId() == null || item.getSizeId().isBlank()) {
+                throw new RuntimeException("Size ID is required for product: " + item.getProductId());
+            }
+            
+            ProductDto product = stockServiceClient.getProductById(item.getProductId()).getBody();
+            if (product == null) {
+                throw new RuntimeException("Product not found for ID: " + item.getProductId());
+            }
+            
+            SizeDto size = stockServiceClient.getSizeById(item.getSizeId()).getBody();
+            if (size == null) {
+                throw new RuntimeException("Size not found for ID: " + item.getSizeId());
+            }
+            
+            if (size.getStock() < item.getQuantity()) {
+                throw new RuntimeException("Insufficient stock for product: " + product.getName()
+                        + ", size: " + size.getName() + ". Available: " + size.getStock() + ", Requested: " + item.getQuantity());
+            }
+        }
+
+        // Create order synchronously
+        Order order = initPendingOrder(cartDto.getUserId(), orderRequest.getAddressId());
+        List<OrderItem> items = toOrderItemsFromSelected(orderRequest.getSelectedItems(), order);
+        order.setOrderItems(items);
+        order.setTotalPrice(calculateTotalPrice(items));
+        orderRepository.save(order);
+
+        // Cleanup cart
+        try {
+            cleanupCartItemsBySelected(cartDto.getUserId(), orderRequest.getSelectedItems());
+        } catch (Exception e) {
+            log.error("[SYNC] cart cleanup failed: {}", e.getMessage(), e);
+        }
+
+        // Send notifications async (non-blocking)
+        try {
+            notifyOrderPlaced(order);
+            notifyShopOwners(order);
+        } catch (Exception e) {
+            log.error("[SYNC] send notification failed: {}", e.getMessage(), e);
+        }
+
+        return order;
+    }
+
+    @Override
+    @Transactional
+    public Order createOrderFromPayment(String userId, String addressId, List<SelectedItemDto> selectedItems) {
+        // Validate address
+        AddressDto address = userServiceClient.getAddressById(addressId).getBody();
+        if (address == null) {
+            throw new RuntimeException("Address not found for ID: " + addressId);
+        }
+
+        // Validate stock
+        for (SelectedItemDto item : selectedItems) {
+            if (item.getSizeId() == null || item.getSizeId().isBlank()) {
+                throw new RuntimeException("Size ID is required for product: " + item.getProductId());
+            }
+            
+            ProductDto product = stockServiceClient.getProductById(item.getProductId()).getBody();
+            if (product == null) {
+                throw new RuntimeException("Product not found for ID: " + item.getProductId());
+            }
+            
+            SizeDto size = stockServiceClient.getSizeById(item.getSizeId()).getBody();
+            if (size == null) {
+                throw new RuntimeException("Size not found for ID: " + item.getSizeId());
+            }
+            
+            if (size.getStock() < item.getQuantity()) {
+                throw new RuntimeException("Insufficient stock for product: " + product.getName()
+                        + ", size: " + size.getName() + ". Available: " + size.getStock() + ", Requested: " + item.getQuantity());
+            }
+        }
+
+        // Create order with PAID status (payment already succeeded)
+        Order order = Order.builder()
+                .userId(userId)
+                .addressId(addressId)
+                .orderStatus(OrderStatus.PAID) // Already paid
+                .totalPrice(0.0)
+                .build();
+        order = orderRepository.save(order);
+
+        // Add items and decrease stock
+        List<OrderItem> items = toOrderItemsFromSelected(selectedItems, order);
+        order.setOrderItems(items);
+        order.setTotalPrice(calculateTotalPrice(items));
+        orderRepository.save(order);
+
+        // Cleanup cart
+        try {
+            cleanupCartItemsBySelected(userId, selectedItems);
+        } catch (Exception e) {
+            log.error("[PAYMENT-ORDER] cart cleanup failed: {}", e.getMessage(), e);
+        }
+
+        // Send notifications
+        try {
+            notifyOrderPlaced(order);
+            notifyShopOwners(order);
+        } catch (Exception e) {
+            log.error("[PAYMENT-ORDER] send notification failed: {}", e.getMessage(), e);
+        }
+
+        return order;
+    }
+
     @KafkaListener(topics = "#{@orderTopic.name}", groupId = "order-service-checkout")
     @Transactional
     public void consumeCheckout(CheckOutKafkaRequest msg) {
@@ -290,6 +412,45 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found for ID: " + orderId));
         orderRepository.delete(order);
+    }
+
+    @Override
+    @Transactional
+    public void rollbackOrderStock(String orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found for ID: " + orderId));
+        
+        // Only rollback if order is still PENDING (not paid yet)
+        if (order.getOrderStatus() != OrderStatus.PENDING) {
+            log.warn("[ROLLBACK] Order {} is not PENDING (status: {}), skipping rollback", 
+                    orderId, order.getOrderStatus());
+            return;
+        }
+
+        // Rollback stock for each order item
+        if (order.getOrderItems() != null && !order.getOrderItems().isEmpty()) {
+            for (OrderItem item : order.getOrderItems()) {
+                try {
+                    com.example.orderservice.request.IncreaseStockRequest rollbackRequest = 
+                            new com.example.orderservice.request.IncreaseStockRequest(
+                                    item.getSizeId(), 
+                                    item.getQuantity()
+                            );
+                    stockServiceClient.increaseStock(rollbackRequest);
+                    log.info("[ROLLBACK] Rolled back stock for sizeId: {}, quantity: {}", 
+                            item.getSizeId(), item.getQuantity());
+                } catch (Exception e) {
+                    log.error("[ROLLBACK] Failed to rollback stock for sizeId: {}, quantity: {}", 
+                            item.getSizeId(), item.getQuantity(), e);
+                    // Continue with other items even if one fails
+                }
+            }
+        }
+        
+        // Update order status to CANCELLED
+        order.setOrderStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+        log.info("[ROLLBACK] Order {} rolled back and cancelled", orderId);
     }
 
     @Override

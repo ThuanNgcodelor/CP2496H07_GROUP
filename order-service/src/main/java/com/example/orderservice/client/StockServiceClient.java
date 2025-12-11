@@ -24,6 +24,9 @@ public interface StockServiceClient {
     @PostMapping(value = "/product/decreaseStock", headers = "X-Internal-Call=true")
     ProductDto decreaseStock(@RequestBody DecreaseStockRequest request);
 
+    @PostMapping(value = "/product/increaseStock", headers = "X-Internal-Call=true")
+    ProductDto increaseStock(@RequestBody com.example.orderservice.request.IncreaseStockRequest request);
+
     @GetMapping("/cart/user")
     ResponseEntity<CartDto> getCart(@RequestHeader("Authorization") String token);
 

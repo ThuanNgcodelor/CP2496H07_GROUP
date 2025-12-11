@@ -38,9 +38,9 @@ public class GatewayConfig {
                 .route("order-service", r -> r.path("/v1/order/**")
                         .filters(f -> f.filter(filter))
                         .uri("lb://order-service"))
-
-                // WebSocket route - Spring Cloud Gateway tự động detect WebSocket upgrade
-                // JWT authentication được xử lý trong WebSocketInterceptor của notification-service
+                .route("order-service", r -> r.path("/v1/payment/**")
+                        .filters(f -> f.filter(filter))
+                        .uri("lb://payment-service"))
                 .route("notification-websocket", r -> r.path("/ws/notifications/**")
                         .uri("lb://notification-service"))
                 .build();

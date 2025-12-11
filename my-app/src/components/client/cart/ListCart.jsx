@@ -6,6 +6,7 @@ import { getCart, getAllAddress } from "../../../api/user.js";
 import { fetchImageById } from "../../../api/image.js";
 import { fetchProductById, removeCartItem, updateCartItemQuantity } from "../../../api/product.js";
 import { createOrder, calculateShippingFee } from "../../../api/order.js";
+import { createVnpayPayment } from "../../../api/payment.js";
 import Swal from "sweetalert2";
 import { CartItemList } from "./CartItemList";
 import { CheckoutSection } from "./CheckoutSection";
@@ -490,15 +491,6 @@ export function Cart() {
       return;
     }
 
-    if (paymentMethod === "CARD") {
-      await Swal.fire({
-        icon: "info",
-        title: "Card payment (demo)",
-        text: "This is a mock card payment. No real charge will occur.",
-        confirmButtonText: "Continue"
-      });
-    }
-
     setOrderLoading(true);
     try {
       const orderData = {
@@ -520,8 +512,60 @@ export function Cart() {
         didOpen: () => Swal.showLoading(),
       });
 
-      const result = await createOrder(orderData);
+      // If VNPay, create payment first (order will be created after payment success)
+      if (paymentMethod === "VNPAY" || paymentMethod === "CARD") {
+        try {
+          const totalWithShipping = selectedSubtotal + (shippingFee || 0);
+          
+          // Get userId from cart
+          const userId = cart?.userId;
+          if (!userId) {
+            throw new Error("Cannot get user ID from cart");
+          }
 
+          // Create payment with order data (order will be created after payment success)
+          const payPayload = {
+            amount: Math.max(1, Math.round(totalWithShipping)),
+            orderInfo: "Thanh toan don hang",
+            userId: userId,
+            addressId: selectedAddressId,
+            orderDataJson: JSON.stringify({
+              userId: userId,
+              addressId: selectedAddressId,
+              selectedItems: selectedItems.map((it) => ({
+                productId: it.productId || it.id,
+                sizeId: it.sizeId,
+                quantity: it.quantity,
+                unitPrice: it.unitPrice || it.price,
+              })),
+            }),
+          };
+          
+          const payRes = await createVnpayPayment(payPayload);
+          Swal.close();
+          
+          if (payRes?.paymentUrl) {
+            // Redirect to VNPay - order will be created after payment success
+            window.location.href = payRes.paymentUrl;
+            return;
+          } else {
+            throw new Error("No payment URL returned");
+          }
+        } catch (payErr) {
+          console.error("Create VNPay payment failed:", payErr);
+          Swal.close();
+          await Swal.fire({
+            icon: "error",
+            title: "Payment Error",
+            text: payErr?.response?.data?.message || payErr?.message || "Cannot create payment. Please try again.",
+            confirmButtonText: "OK",
+          });
+          return;
+        }
+      }
+
+      // COD flow - use async Kafka
+      const result = await createOrder(orderData);
       Swal.close();
 
       // Optional: keep receipt in state if needed elsewhere
@@ -533,6 +577,7 @@ export function Cart() {
       setCart(data);
       setSelected(new Set());
       toast("success", "Order created");
+
       navigate("/information/orders");
       } catch (err) {
         console.error("Failed to create order:", err);

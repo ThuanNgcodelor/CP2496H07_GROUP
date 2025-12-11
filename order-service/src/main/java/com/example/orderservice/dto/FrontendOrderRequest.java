@@ -13,4 +13,6 @@ public class FrontendOrderRequest {
 
     @NotNull(message = "Address ID is required")
     private String addressId;
+    
+    private String paymentMethod; // VNPAY, CARD, COD
 }

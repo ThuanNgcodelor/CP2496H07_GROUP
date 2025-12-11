@@ -261,19 +261,19 @@ export function CheckoutSection({
               </div>
             </div>
             <div
-              className={`payment-option ${paymentMethod === "CARD" ? "selected" : ""}`}
-              onClick={() => onPaymentMethodChange("CARD")}
+              className={`payment-option ${paymentMethod === "VNPAY" ? "selected" : ""}`}
+              onClick={() => onPaymentMethodChange("VNPAY")}
             >
               <input
                 type="radio"
                 name="payment-method"
-                value="CARD"
-                checked={paymentMethod === "CARD"}
-                onChange={() => onPaymentMethodChange("CARD")}
+                value="VNPAY"
+                checked={paymentMethod === "VNPAY"}
+                onChange={() => onPaymentMethodChange("VNPAY")}
               />
               <div>
-                <div style={{ fontWeight: 600 }}>Card (Demo)</div>
-                <small>Mock payment, no real charge applied.</small>
+                <div style={{ fontWeight: 600 }}>VNPay (Sandbox)</div>
+                <small>Redirect to VNPay sandbox for card/ATM payment.</small>
               </div>
             </div>
           </div>

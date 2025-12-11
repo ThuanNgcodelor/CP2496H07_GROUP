@@ -25,5 +25,8 @@ public interface OrderService {
     AddressDto getAddressById(String addressId);
     // Frontend order creation
     void orderByKafka(FrontendOrderRequest orderRequest, HttpServletRequest request);
+    Order createOrderSync(FrontendOrderRequest orderRequest, HttpServletRequest request);
+    Order createOrderFromPayment(String userId, String addressId, List<com.example.orderservice.dto.SelectedItemDto> selectedItems);
     Order cancelOrder(String orderId);
+    void rollbackOrderStock(String orderId);
 }

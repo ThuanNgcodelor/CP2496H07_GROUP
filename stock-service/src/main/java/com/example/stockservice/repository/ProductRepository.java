@@ -19,4 +19,6 @@ public interface ProductRepository extends JpaRepository<Product,String> {
     List<Product> findByUserId(String userId);
     @Query("SELECT DISTINCT p FROM products p LEFT JOIN FETCH p.sizes where p.status = 'IN_STOCK'")
     List<Product> findAllWithSizes();
+
+    long countByCategory_Id(String categoryId);
 }

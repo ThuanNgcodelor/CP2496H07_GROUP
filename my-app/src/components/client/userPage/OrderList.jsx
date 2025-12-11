@@ -32,6 +32,33 @@ const STATUS_NUMERIC_MAP = {
     6: "RETURNED",
 };
 
+// Styles for action buttons
+const ratingButtonBase = {
+    minWidth: '160px',
+    padding: '10px 16px',
+    borderRadius: '6px',
+    fontWeight: 600,
+    fontSize: '13px',
+    textTransform: 'uppercase',
+    transition: 'all 0.2s ease',
+    cursor: 'pointer',
+};
+
+const ratingButtonOutline = {
+    ...ratingButtonBase,
+    background: '#fff',
+    color: '#555',
+    border: '1px solid #e5e5e5',
+};
+
+const ratingButtonPrimary = {
+    ...ratingButtonBase,
+    background: '#ee4d2d',
+    color: '#fff',
+    border: '1px solid #ee4d2d',
+    boxShadow: '0 2px 6px rgba(238,77,45,0.2)',
+};
+
 const normalizeStatus = (status) => {
     if (status === null || status === undefined) return "";
     if (typeof status === "number") {
@@ -566,8 +593,8 @@ export default function OrderList() {
                                                         </div>
                                                     </div>
 
-                                                    {/* Price & Actions */}
-                                                    <div className="text-end" style={{ minWidth: '130px', flexShrink: 0 }}>
+                                {/* Price */}
+                                <div className="text-end" style={{ minWidth: '130px', flexShrink: 0 }}>
                                                         {item.originalPrice && item.originalPrice > item.unitPrice && (
                                                             <div style={{ fontSize: '13px', color: '#999', textDecoration: 'line-through', marginBottom: '4px' }}>
                                                                 {formatVND(item.originalPrice)}
@@ -576,25 +603,6 @@ export default function OrderList() {
                                                         <div style={{ fontSize: '14px', color: '#ee4d2d', fontWeight: 500, marginBottom: '8px' }}>
                                                             {formatVND(item.unitPrice)}
                                                         </div>
-
-                                                        {(normalizeStatus(order.orderStatus) === 'DELIVERED' || normalizeStatus(order.orderStatus) === 'COMPLETED') && (
-                                                            <div className="d-flex flex-column gap-2 header-features">
-                                                                <button
-                                                                    className="btn btn-sm btn-outline-secondary"
-                                                                    style={{ fontSize: '12px' }}
-                                                                    onClick={() => openRatingModal(item, 'quick')}
-                                                                >
-                                                                    Quick Rate
-                                                                </button>
-                                                                <button
-                                                                    className="btn btn-sm btn-outline-primary"
-                                                                    style={{ fontSize: '12px' }}
-                                                                    onClick={() => openRatingModal(item, 'full')}
-                                                                >
-                                                                    Write Review
-                                                                </button>
-                                                            </div>
-                                                        )}
                                                     </div>
                                                 </div>
                                             );
@@ -618,29 +626,7 @@ export default function OrderList() {
                                                     {formatVND((order.totalPrice || 0) + (order.shippingFee || 0))}
                                                 </div>
                                             </div>
-                                            <div className="d-flex gap-2">
-                                                {normalizeStatus(order.orderStatus) === 'DELIVERED' && (
-                                                    <>
-                                                        <button
-                                                            className="btn"
-                                                            style={{
-                                                                background: '#ee4d2d',
-                                                                color: 'white',
-                                                                border: 'none',
-                                                                padding: '8px 20px',
-                                                                fontSize: '13px',
-                                                                borderRadius: '2px',
-                                                                fontWeight: 500,
-                                                                cursor: 'pointer',
-                                                                transition: 'all 0.2s'
-                                                            }}
-                                                            onMouseEnter={(e) => e.currentTarget.style.background = '#f05d40'}
-                                                            onMouseLeave={(e) => e.currentTarget.style.background = '#ee4d2d'}
-                                                        >
-                                                            Buy Again
-                                                        </button>
-                                                    </>
-                                                )}
+                                            <div className="d-flex gap-2 align-items-center">
                                                 {order.orderStatus === 'PENDING' && (
                                                     <>
                                                         <button
@@ -690,29 +676,24 @@ export default function OrderList() {
                                                         </button>
                                                     </>
                                                 )}
-                                                {order.orderStatus === 'APPROVED' && (
-                                                    <button
-                                                        className="btn"
-                                                        onClick={() => handleCancelOrder(order.id)}
-                                                        style={{
-                                                            background: 'white',
-                                                            color: '#ee4d2d',
-                                                            border: '1px solid #ee4d2d',
-                                                            padding: '8px 20px',
-                                                            fontSize: '13px',
-                                                            borderRadius: '2px',
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.2s'
-                                                        }}
-                                                        onMouseEnter={(e) => {
-                                                            e.currentTarget.style.background = '#fff5f0';
-                                                        }}
-                                                        onMouseLeave={(e) => {
-                                                            e.currentTarget.style.background = 'white';
-                                                        }}
-                                                    >
-                                                        Cancel Order
-                                                    </button>
+
+                                                {(normalizeStatus(order.orderStatus) === 'DELIVERED' || normalizeStatus(order.orderStatus) === 'COMPLETED') && (
+                                                    <>
+                                                        <button
+                                                            className="btn"
+                                                            style={ratingButtonOutline}
+                                                            onClick={() => openRatingModal(order.orderItems?.[0] || {}, 'quick')}
+                                                        >
+                                                            Quick Rate
+                                                        </button>
+                                                        <button
+                                                            className="btn"
+                                                            style={ratingButtonPrimary}
+                                                            onClick={() => openRatingModal(order.orderItems?.[0] || {}, 'full')}
+                                                        >
+                                                            Write Review
+                                                        </button>
+                                                    </>
                                                 )}
                                             </div>
                                         </div>
