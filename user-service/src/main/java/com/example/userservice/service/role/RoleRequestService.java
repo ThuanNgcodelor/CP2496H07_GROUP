@@ -17,8 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -39,9 +37,19 @@ public class RoleRequestService {
             throw new RuntimeException("Your request has already been pending.");
         }
 
+        // Chặn tạo request nếu role đã được duyệt hoặc user đã có role đó
+        Role requestedRole = Role.valueOf(roleRequestData.getRole());
+        boolean hasRoleAlready = user.getRoles() != null && user.getRoles().contains(requestedRole);
+        boolean existsApproved = roleRequestRepository
+                .findByUserIdAndRequestedRoleAndStatus(user.getId(), requestedRole, RequestStatus.APPROVED)
+                .isPresent();
+        if (hasRoleAlready || existsApproved) {
+            throw new RuntimeException("You already have this role approved.");
+        }
+
         RoleRequest newRequest = RoleRequest.builder()
                 .user(user)
-                .requestedRole(Role.valueOf(roleRequestData.getRole()))
+                .requestedRole(requestedRole)
                 .reason(roleRequestData.getReason())
                 .status(RequestStatus.PENDING)
                 .build();
@@ -116,7 +124,7 @@ public class RoleRequestService {
     }
 
     private void createShopOwnerProfile(User user, ShopOwnerRegisterRequest request) {
-        // Kiểm tra nếu đã có Shop rồi thì không tạo mới (hoặc throw exception tùy logic)
+
         if (shopOwnerRepository.existsById(user.getId())) {
             return;
         }

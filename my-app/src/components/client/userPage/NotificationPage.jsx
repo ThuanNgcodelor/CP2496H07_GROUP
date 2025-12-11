@@ -71,7 +71,9 @@ export default function NotificationPage() {
     open: false,
     type: null, // 'single' | 'all'
     targetId: null,
-    message: ''
+    message: '',
+    confirmButtonText: 'DELETE',
+    cancelButtonText: 'CANCEL'
   });
   
   // WebSocket for real-time notifications
@@ -246,7 +248,9 @@ export default function NotificationPage() {
     const message = type === 'all'
       ? 'Are you sure you want to delete all notifications?'
       : 'Are you sure you want to delete this notification?';
-    setConfirmModal({ open: true, type, targetId, message, confirmButtonText, cancelButtonText });  
+    const confirmText = type === 'all' ? 'DELETE ALL' : 'DELETE';
+    const cancelText = 'CANCEL';
+    setConfirmModal({ open: true, type, targetId, message, confirmButtonText: confirmText, cancelButtonText: cancelText });  
   };
 
   const closeConfirm = () => setConfirmModal({ open: false, type: null, targetId: null, message: '', confirmButtonText: 'DELETE', cancelButtonText: 'CANCEL' });

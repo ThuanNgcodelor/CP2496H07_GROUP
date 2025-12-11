@@ -230,39 +230,24 @@ const SearchProduct = () => {
   }
 
   return (
-    <div style={{ background: '#f5f5f5', minHeight: '100vh', paddingTop: '20px' }}>
-      <div className="container">
+    <div style={{  minHeight: '100vh', paddingTop: '12px', paddingBottom: '20px' }}>
+      <div className="container" style={{ maxWidth: '1250px' }}>
         {/* Search Result Title */}
-        {debouncedQuery && (
-          <div style={{ marginBottom: '12px', fontSize: '14px', color: '#757575' }}>
-            Search results for keyword '{debouncedQuery}'
-          </div>
-        )}
+        <div style={{ marginBottom: '12px', fontSize: '16px', color: '#262626', fontWeight: 500 }}>
+          Search results for keyword '{debouncedQuery || query || ''}'
+        </div>
 
-        <div className="row">
+        <div className="row g-3">
           {/* Left Sidebar - Filters */}
-          <div className="col-md-3 mb-4 mb-md-0" style={{ paddingRight: '8px' }}>
-            <div style={{ background: '#fff', borderRadius: '4px', padding: '16px', marginBottom: '12px' }}>
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <h6 style={{ fontSize: '16px', fontWeight: 600, margin: 0, color: '#212121' }}>
-                  SEARCH FILTERS
-                </h6>
-                <button
-                  className="btn btn-link p-0 text-decoration-none"
-                  onClick={clearAllFilters}
-                  style={{ fontSize: '14px', color: '#ee4d2d', padding: 0, fontWeight: 500 }}
-                >
-                  CLEAR ALL
-                </button>
-              </div>
+          <div className="col-12 col-lg-2 col-md-3">
+            <div style={{  borderRadius: 'px', padding: '12px', border: '1px solid #f0f0f0' }}>
+              <h6 style={{ fontSize: '14px', fontWeight: 600, color: '#333', marginBottom: '12px' }}>SEARCH FILTERS</h6>
 
               {/* Location */}
-              <div className="mb-4" style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: '16px' }}>
-                <h6 style={{ fontSize: '14px', fontWeight: 500, marginBottom: '12px', color: '#212121' }}>
-                  Location
-                </h6>
+              <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
+                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>Location</h6>
                 <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
-                  {provinces.slice(0, 5).map((province) => (
+                  {provinces.slice(0, 6).map((province) => (
                     <div key={province} className="form-check mb-2">
                       <input
                         className="form-check-input"
@@ -276,24 +261,19 @@ const SearchProduct = () => {
                             setSelectedAreas(selectedAreas.filter(a => a !== province));
                           }
                         }}
-                        style={{ marginTop: '4px', cursor: 'pointer' }}
+                        style={{ cursor: 'pointer', marginTop: '3px' }}
                       />
-                      <label className="form-check-label" htmlFor={`area-${province}`} style={{ fontSize: '13px', color: '#212121', cursor: 'pointer' }}>
+                      <label className="form-check-label" htmlFor={`area-${province}`} style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
                         {province}
                       </label>
                     </div>
                   ))}
-                  <button className="btn btn-link p-0 text-decoration-none" style={{ fontSize: '13px', color: '#ee4d2d', padding: 0 }}>
-                    More...
-                  </button>
                 </div>
               </div>
 
               {/* Category */}
-              <div className="mb-4" style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: '16px' }}>
-                <h6 style={{ fontSize: '14px', fontWeight: 500, marginBottom: '12px', color: '#212121' }}>
-                  Category
-                </h6>
+              <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
+                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>Category</h6>
                 <div>
                   {categoryList.map((cat) => (
                     <div key={cat} className="form-check mb-2">
@@ -309,24 +289,19 @@ const SearchProduct = () => {
                             setCategories(categories.filter(c => c !== cat));
                           }
                         }}
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: 'pointer', marginTop: '3px' }}
                       />
-                      <label className="form-check-label" htmlFor={`cat-${cat}`} style={{ fontSize: '13px', color: '#212121', cursor: 'pointer' }}>
+                      <label className="form-check-label" htmlFor={`cat-${cat}`} style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
                         {cat}
                       </label>
                     </div>
                   ))}
-                  <button className="btn btn-link p-0 text-decoration-none" style={{ fontSize: '13px', color: '#ee4d2d', padding: 0 }}>
-                    More...
-                  </button>
                 </div>
               </div>
 
-              {/* Shipping Unit */}
-              <div className="mb-4" style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: '16px' }}>
-                <h6 style={{ fontSize: '14px', fontWeight: 500, marginBottom: '12px', color: '#212121' }}>
-                  Shipping Unit
-                </h6>
+              {/* Shipping */}
+              <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
+                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>Shipping</h6>
                 <div className="form-check mb-2">
                   <input
                     className="form-check-input"
@@ -340,9 +315,9 @@ const SearchProduct = () => {
                         setSelectedShipping(selectedShipping.filter(s => s !== 'fast'));
                       }
                     }}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', marginTop: '3px' }}
                   />
-                  <label className="form-check-label" htmlFor="shipping-fast" style={{ fontSize: '13px', color: '#212121', cursor: 'pointer' }}>
+                  <label className="form-check-label" htmlFor="shipping-fast" style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
                     Fast
                   </label>
                 </div>
@@ -359,22 +334,17 @@ const SearchProduct = () => {
                         setSelectedShipping(selectedShipping.filter(s => s !== 'economical'));
                       }
                     }}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', marginTop: '3px' }}
                   />
-                  <label className="form-check-label" htmlFor="shipping-economical" style={{ fontSize: '13px', color: '#212121', cursor: 'pointer' }}>
-                    Economical
+                  <label className="form-check-label" htmlFor="shipping-economical" style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
+                    Economy
                   </label>
                 </div>
-                <button className="btn btn-link p-0 text-decoration-none" style={{ fontSize: '13px', color: '#ee4d2d', padding: 0 }}>
-                  Thêm...
-                </button>
           </div>
 
               {/* Price Range */}
-              <div className="mb-4" style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: '16px' }}>
-                <h6 style={{ fontSize: '14px', fontWeight: 500, marginBottom: '12px', color: '#212121' }}>
-                  Price Range
-                </h6>
+              <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
+                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>Price Range</h6>
                 <div className="d-flex gap-2 mb-2">
                   <input
                     type="number"
@@ -395,25 +365,22 @@ const SearchProduct = () => {
                 </div>
                 <button
                   className="btn btn-sm w-100"
-                  style={{ 
-                    fontSize: '13px', 
-                    padding: '8px', 
-                    background: '#ee4d2d', 
+                  style={{
+                    fontSize: '13px',
+                    padding: '8px',
                     color: '#fff',
                     border: 'none',
                     borderRadius: '2px',
-                    fontWeight: 500
+                    fontWeight: 600
                   }}
                 >
-                  APPLY
+                  Apply
                 </button>
               </div>
 
               {/* Shop Type */}
-              <div className="mb-4" style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: '16px' }}>
-                <h6 style={{ fontSize: '14px', fontWeight: 500, marginBottom: '12px', color: '#212121' }}>
-                  Shop Type
-                </h6>
+              <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
+                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>Shop Type</h6>
                 <div className="form-check mb-2">
                   <input
                     className="form-check-input"
@@ -427,12 +394,12 @@ const SearchProduct = () => {
                         setShopTypes(shopTypes.filter(t => t !== 'mall'));
                       }
                     }}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', marginTop: '3px' }}
                   />
-                  <label className="form-check-label" htmlFor="shop-mall" style={{ fontSize: '13px', color: '#212121', cursor: 'pointer' }}>
-                    Shop Mall
+                  <label className="form-check-label" htmlFor="shop-mall" style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
+                    Mall
                   </label>
-                </div>
+              </div>
                 <div className="form-check mb-2">
                   <input
                     className="form-check-input"
@@ -446,41 +413,17 @@ const SearchProduct = () => {
                         setShopTypes(shopTypes.filter(t => t !== 'favorite'));
                       }
                     }}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', marginTop: '3px' }}
                   />
-                  <label className="form-check-label" htmlFor="shop-favorite" style={{ fontSize: '13px', color: '#212121', cursor: 'pointer' }}>
-                    Favorite Shop+
+                  <label className="form-check-label" htmlFor="shop-favorite" style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
+                    Favorite+
                   </label>
-                </div>
-                <div className="form-check mb-2">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    id="shop-reputable"
-                    checked={shopTypes.includes('reputable')}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setShopTypes([...shopTypes, 'reputable']);
-                      } else {
-                        setShopTypes(shopTypes.filter(t => t !== 'reputable'));
-                      }
-                    }}
-                    style={{ cursor: 'pointer' }}
-                  />
-                  <label className="form-check-label" htmlFor="shop-reputable" style={{ fontSize: '13px', color: '#212121', cursor: 'pointer' }}>
-                    Street Shop
-                  </label>
-                </div>
-                <button className="btn btn-link p-0 text-decoration-none" style={{ fontSize: '13px', color: '#ee4d2d', padding: 0 }}>
-                  Thêm...
-                </button>
-              </div>
+            </div>
+          </div>
 
               {/* Condition */}
-              <div className="mb-4" style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: '16px' }}>
-                <h6 style={{ fontSize: '14px', fontWeight: 500, marginBottom: '12px', color: '#212121' }}>
-                  Condition
-                </h6>
+              <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
+                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>Condition</h6>
                 <div className="form-check mb-2">
                   <input
                     className="form-check-input"
@@ -488,9 +431,9 @@ const SearchProduct = () => {
                     id="condition-new"
                     checked={condition === 'new' || condition === ''}
                     onChange={() => setCondition(condition === 'new' ? '' : 'new')}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', marginTop: '3px' }}
                   />
-                  <label className="form-check-label" htmlFor="condition-new" style={{ fontSize: '13px', color: '#212121', cursor: 'pointer' }}>
+                  <label className="form-check-label" htmlFor="condition-new" style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
                     New
                   </label>
                 </div>
@@ -501,19 +444,17 @@ const SearchProduct = () => {
                     id="condition-used"
                     checked={condition === 'used'}
                     onChange={() => setCondition(condition === 'used' ? '' : 'used')}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', marginTop: '3px' }}
                   />
-                  <label className="form-check-label" htmlFor="condition-used" style={{ fontSize: '13px', color: '#212121', cursor: 'pointer' }}>
+                  <label className="form-check-label" htmlFor="condition-used" style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
                     Used
                   </label>
                 </div>
               </div>
 
               {/* Rating */}
-              <div className="mb-4" style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: '16px' }}>
-                <h6 style={{ fontSize: '14px', fontWeight: 500, marginBottom: '12px', color: '#212121' }}>
-                  Rating
-                </h6>
+              <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
+                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>Rating</h6>
                 {[5, 4, 3, 2, 1].map((stars) => (
                   <div key={stars} className="form-check mb-2">
                     <input
@@ -528,9 +469,9 @@ const SearchProduct = () => {
                           setRating(rating.filter(r => r !== stars));
                         }
                       }}
-                      style={{ cursor: 'pointer' }}
+                      style={{ cursor: 'pointer', marginTop: '3px' }}
                     />
-                    <label className="form-check-label d-flex align-items-center" htmlFor={`rating-${stars}`} style={{ fontSize: '13px', color: '#212121', cursor: 'pointer' }}>
+                    <label className="form-check-label d-flex align-items-center" htmlFor={`rating-${stars}`} style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
                       <span style={{ color: '#ffc107', marginRight: '4px', fontSize: '12px' }}>
                         {'★'.repeat(stars)}
                       </span>
@@ -540,11 +481,9 @@ const SearchProduct = () => {
                 ))}
               </div>
 
-              {/* Promotions & Vouchers */}
+              {/* Promotions */}
               <div>
-                <h6 style={{ fontSize: '14px', fontWeight: 500, marginBottom: '12px', color: '#212121' }}>
-                  Promotions & Vouchers
-                </h6>
+                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>Promotions & Vouchers</h6>
                 <div className="form-check mb-2">
                   <input
                     className="form-check-input"
@@ -558,9 +497,9 @@ const SearchProduct = () => {
                         setPromotions(promotions.filter(p => p !== 'sale'));
                       }
                     }}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', marginTop: '3px' }}
                   />
-                  <label className="form-check-label" htmlFor="promo-sale" style={{ fontSize: '13px', color: '#212121', cursor: 'pointer' }}>
+                  <label className="form-check-label" htmlFor="promo-sale" style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
                     On Sale
                   </label>
                 </div>
@@ -577,137 +516,93 @@ const SearchProduct = () => {
                         setPromotions(promotions.filter(p => p !== 'stock'));
                       }
                     }}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', marginTop: '3px' }}
                   />
-                  <label className="form-check-label" htmlFor="promo-stock" style={{ fontSize: '13px', color: '#212121', cursor: 'pointer' }}>
+                  <label className="form-check-label" htmlFor="promo-stock" style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
                     In Stock
                   </label>
                 </div>
-                <div className="form-check mb-2">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    id="promo-wholesale"
-                    checked={promotions.includes('wholesale')}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setPromotions([...promotions, 'wholesale']);
-                      } else {
-                        setPromotions(promotions.filter(p => p !== 'wholesale'));
-                      }
-                    }}
-                    style={{ cursor: 'pointer' }}
-                  />
-                  <label className="form-check-label" htmlFor="promo-wholesale" style={{ fontSize: '13px', color: '#212121', cursor: 'pointer' }}>
-                    Retail Price (Wholesale)
-                  </label>
-                </div>
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    id="promo-company"
-                    checked={promotions.includes('company')}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setPromotions([...promotions, 'company']);
-                      } else {
-                        setPromotions(promotions.filter(p => p !== 'company'));
-                      }
-                    }}
-                    style={{ cursor: 'pointer' }}
-                  />
-                  <label className="form-check-label" htmlFor="promo-company" style={{ fontSize: '13px', color: '#212121', cursor: 'pointer' }}>
-                    Company Available
-                  </label>
-                </div>
               </div>
+
+              <button
+                className="btn w-100 mt-3"
+                onClick={clearAllFilters}
+                style={{
+                  fontSize: '13px',
+                  padding: '10px',
+                  background: '#fff',
+                  color: '#ee4d2d',
+                  border: '1px solid #ee4d2d',
+                  borderRadius: '2px',
+                  fontWeight: 600
+                }}
+              >
+                Clear All
+              </button>
             </div>
           </div>
 
           {/* Main Content - Product Grid */}
-          <div className="col-md-9" style={{ paddingLeft: '8px' }}>
+          <div className="col-12 col-lg-10 col-md-9">
             {/* Sort Tabs */}
-            <div style={{ background: '#fff', borderRadius: '4px', padding: '12px 16px', marginBottom: '12px' }}>
-              <div className="d-flex align-items-center gap-4 flex-wrap">
-                <span style={{ fontSize: '14px', color: '#757575' }}>Sort by:</span>
-                <button
-                  className="btn btn-link p-0 text-decoration-none"
-                  onClick={() => setSortBy('relevance')}
-                  style={{
-                    fontSize: '14px',
-                    color: sortBy === 'relevance' ? '#ee4d2d' : '#212121',
-                    fontWeight: sortBy === 'relevance' ? 600 : 400,
-                    padding: '4px 8px',
-                    border: 'none',
-                    background: 'transparent',
-                    borderBottom: sortBy === 'relevance' ? '2px solid #ee4d2d' : '2px solid transparent',
-                    borderRadius: 0
-                  }}
-                >
-                  Relevance
-                </button>
-                <button
-                  className="btn btn-link p-0 text-decoration-none"
-                  onClick={() => setSortBy('newest')}
-                  style={{
-                    fontSize: '14px',
-                    color: sortBy === 'newest' ? '#ee4d2d' : '#212121',
-                    fontWeight: sortBy === 'newest' ? 600 : 400,
-                    padding: '4px 8px',
-                    border: 'none',
-                    background: 'transparent',
-                    borderBottom: sortBy === 'newest' ? '2px solid #ee4d2d' : '2px solid transparent',
-                    borderRadius: 0
-                  }}
-                >
-                  Newest
-                </button>
-                <button
-                  className="btn btn-link p-0 text-decoration-none"
-                  onClick={() => setSortBy('bestselling')}
-                  style={{
-                    fontSize: '14px',
-                    color: sortBy === 'bestselling' ? '#ee4d2d' : '#212121',
-                    fontWeight: sortBy === 'bestselling' ? 600 : 400,
-                    padding: '4px 8px',
-                    border: 'none',
-                    background: 'transparent',
-                    borderBottom: sortBy === 'bestselling' ? '2px solid #ee4d2d' : '2px solid transparent',
-                    borderRadius: 0
-                  }}
-                >
-                  Bestselling
-                </button>
-                <div className="dropdown d-inline">
+            <div style={{ background: '#fff', borderRadius: '4px', padding: '8px 10px', marginBottom: '10px', border: '1px solid #f0f0f0' }}>
+              <div className="d-flex align-items-center flex-wrap" style={{ gap: '6px' }}>
+                <span style={{ fontSize: '13px', color: '#757575', marginRight: '4px' }}>Sort by</span>
+                {[
+                  { key: 'relevance', label: 'Relevance' },
+                  { key: 'newest', label: 'Newest' },
+                  { key: 'bestselling', label: 'Bestselling' }
+                ].map((btn) => {
+                  const active = sortBy === btn.key;
+                  return (
+                    <button
+                      key={btn.key}
+                      className="btn"
+                      onClick={() => setSortBy(btn.key)}
+                      style={{
+                        padding: '6px 10px',
+                        fontSize: '12.5px',
+                        fontWeight: active ? 600 : 500,
+                        color: active ? '#fff' : '#555',
+                        background: active ? '#ee4d2d' : '#fff',
+                        border: active ? '1px solid #ee4d2d' : '1px solid #e5e5e5',
+                        borderRadius: '2px',
+                        boxShadow: active ? '0 1px 3px rgba(0,0,0,0.12)' : 'none'
+                      }}
+                    >
+                      {btn.label}
+                    </button>
+                  );
+                })}
+
+                {/* Price dropdown */}
+                <div className="dropdown">
                   <button
-                    className="btn btn-link dropdown-toggle p-0 text-decoration-none"
+                    className="btn dropdown-toggle"
                     type="button"
                     data-bs-toggle="dropdown"
                     style={{
-                      fontSize: '14px',
-                      color: sortBy.startsWith('price') ? '#ee4d2d' : '#212121',
-                      fontWeight: sortBy.startsWith('price') ? 600 : 400,
-                      padding: '4px 8px',
-                      border: 'none',
-                      background: 'transparent',
-                      borderBottom: sortBy.startsWith('price') ? '2px solid #ee4d2d' : '2px solid transparent',
-                      borderRadius: 0
+                      padding: '6px 10px',
+                      fontSize: '12.5px',
+                      fontWeight: sortBy.startsWith('price') ? 600 : 500,
+                      color: sortBy.startsWith('price') ? '#fff' : '#555',
+                      background: sortBy.startsWith('price') ? '#ee4d2d' : '#fff',
+                      border: sortBy.startsWith('price') ? '1px solid #ee4d2d' : '1px solid #e5e5e5',
+                      borderRadius: '2px',
+                      boxShadow: sortBy.startsWith('price') ? '0 1px 3px rgba(0,0,0,0.12)' : 'none'
                     }}
                   >
                     Price
-                    {sortBy === 'price-asc' && ' ↑'}
-                    {sortBy === 'price-desc' && ' ↓'}
                   </button>
                   <ul className="dropdown-menu">
                     <li>
                       <button className="dropdown-item" onClick={() => setSortBy('price-asc')}>
-                        Price: Low to High ↑
+                        Price: Low to High
                       </button>
                     </li>
                     <li>
                       <button className="dropdown-item" onClick={() => setSortBy('price-desc')}>
-                        Price: High to Low ↓
+                        Price: High to Low
                       </button>
                     </li>
                   </ul>
@@ -721,7 +616,7 @@ const SearchProduct = () => {
             </div>
             ) : (
               <>
-                <div className="row g-2">
+                <div className="row g-2 g-sm-3">
                   {pageItems.map((product) => {
                     const hasDiscount = product.originalPrice && Number(product.originalPrice) > Number(product.price);
                     const discountPercent = hasDiscount
@@ -729,11 +624,11 @@ const SearchProduct = () => {
                       : 0;
 
                     return (
-                      <div className="col-6 col-sm-4 col-md-3 col-lg-2-4" key={product.id} style={{ marginBottom: '12px' }}>
+                      <div className="col-6 col-sm-4 col-md-3 col-lg-2-4 col-xl-2-4" key={product.id} style={{ marginBottom: '10px' }}>
                         <div
                           style={{
                             background: '#fff',
-                            borderRadius: '4px',
+                            borderRadius: '3px',
                             overflow: 'hidden',
                   position: 'relative',
                             transition: 'transform 0.2s, box-shadow 0.2s',
@@ -756,7 +651,7 @@ const SearchProduct = () => {
                             style={{ textDecoration: 'none', color: 'inherit', flex: 1, display: 'flex', flexDirection: 'column' }}
                           >
                             {/* Product Image */}
-                            <div style={{ position: 'relative', paddingTop: '100%', background: '#f5f5f5' }}>
+                            <div style={{ position: 'relative', paddingTop: '100%', background: '#f7f7f7' }}>
                   <img
                     src={imageUrls[product.id] || imgFallback}
                                 alt={product.name}
@@ -805,19 +700,19 @@ const SearchProduct = () => {
                                   borderRadius: '2px'
                                 }}
                               >
-                                Favorite+
+                                Yêu thích+
                               </div>
                 </div>
 
                             {/* Product Info */}
-                            <div style={{ padding: '8px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ padding: '8px 7px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                               <h6
                                 style={{
-                                  fontSize: '12px',
+                                  fontSize: '11.5px',
                                   fontWeight: 400,
                                   color: '#212121',
-                                  marginBottom: '8px',
-                                  lineHeight: '1.4',
+                                  marginBottom: '6px',
+                                  lineHeight: '1.35',
                                   display: '-webkit-box',
                                   WebkitLineClamp: 2,
                                   WebkitBoxOrient: 'vertical',
@@ -830,37 +725,37 @@ const SearchProduct = () => {
                                 {product.name}
                               </h6>
                               <div style={{ marginTop: 'auto' }}>
-                                <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                                  <div style={{ fontSize: '16px', fontWeight: 600, color: '#ee4d2d' }}>
+                                <div className="d-flex align-items-center gap-1 mb-1 flex-wrap">
+                                  <div style={{ fontSize: '15px', fontWeight: 600, color: '#ee4d2d' }}>
                                     {Number(product.price || 0).toLocaleString('vi-VN')}₫
                                   </div>
                                   {hasDiscount && (
-                                    <div style={{ fontSize: '12px', color: '#757575', textDecoration: 'line-through' }}>
+                                    <div style={{ fontSize: '11px', color: '#9e9e9e', textDecoration: 'line-through' }}>
                                       {Number(product.originalPrice).toLocaleString('vi-VN')}₫
                                     </div>
                     )}
                   </div>
-                                <div className="d-flex align-items-center gap-1 mb-1" style={{ fontSize: '11px' }}>
-                                  <span style={{ color: '#ffc107', fontSize: '10px' }}>★★★★★</span>
-                                  <span style={{ color: '#757575' }}>Sold {formatSoldCount(product.soldOf || 0)}</span>
+                                <div className="d-flex align-items-center gap-1 mb-1" style={{ fontSize: '10px' }}>
+                                  <span style={{ color: '#ffc107', fontSize: '9px' }}>★★★★★</span>
+                                  <span style={{ color: '#9e9e9e' }}>Sold {formatSoldCount(product.soldOf || 0)}</span>
                                 </div>
-                                <div style={{ fontSize: '11px', color: '#757575', marginBottom: '2px' }}>
+                                <div style={{ fontSize: '10px', color: '#9e9e9e', marginBottom: '1px' }}>
                                   Free Shipping
                                 </div>
-                                <div style={{ fontSize: '11px', color: '#757575' }}>
-                                  Ho Chi Minh City
+                                <div style={{ fontSize: '10px', color: '#9e9e9e' }}>
+                                  Hồ Chí Minh
                 </div>
               </div>
             </div>
                           </Link>
                         </div>
-        </div>
+                      </div>
                     );
                   })}
-                </div>
+        </div>
 
                 {/* Pagination */}
-                {totalPages > 1 && (
+        {totalPages > 1 && (
                   <div className="d-flex justify-content-center align-items-center gap-3 mt-4">
                     <button
                       className="btn btn-sm"
@@ -894,7 +789,7 @@ const SearchProduct = () => {
                       }}
                     >
                       &gt;
-                    </button>
+                        </button>
                   </div>
                 )}
 
@@ -916,19 +811,37 @@ const SearchProduct = () => {
                     >
                       See More
                     </button>
-            </div>
+                  </div>
                 )}
               </>
             )}
           </div>
-        </div>
-      </div>
+            </div>
+          </div>
 
       <style>{`
         @media (min-width: 1200px) {
-          .col-lg-2-4 {
+          .col-lg-2-4, .col-xl-2-4 {
             flex: 0 0 20%;
             max-width: 20%;
+          }
+        }
+        @media (max-width: 1199px) and (min-width: 992px) {
+          .col-lg-3 {
+            flex: 0 0 25%;
+            max-width: 25%;
+          }
+        }
+        @media (max-width: 991px) and (min-width: 768px) {
+          .col-md-4 {
+            flex: 0 0 33.3333%;
+            max-width: 33.3333%;
+          }
+        }
+        @media (max-width: 767px) {
+          .col-sm-6 {
+            flex: 0 0 50%;
+            max-width: 50%;
           }
         }
       `}</style>

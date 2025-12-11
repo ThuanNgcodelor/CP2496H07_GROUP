@@ -23,7 +23,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
 @RequestMapping("/v1/stock/product")
 @RequiredArgsConstructor
 @RestController
@@ -31,18 +30,19 @@ public class ProductController {
     private final ProductService productService;
     private final ModelMapper modelMapper;
     private final JwtUtil jwtUtil;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     @PostMapping("/decreaseStock")
     public ResponseEntity<ProductDto> decreaseStock(@Valid @RequestBody DecreaseStockRequest request) {
         productService.decreaseStockBySize(request.getSizeId(), request.getQuantity());
-        
+
         // Get product by finding the size first
         Product product = productService.findProductBySizeId(request.getSizeId());
-        
+
         if (product == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
-        
+
         ProductDto productDto = toDto(product);
         return ResponseEntity.status(HttpStatus.OK).body(productDto);
     }
@@ -50,50 +50,52 @@ public class ProductController {
     @PostMapping("/increaseStock")
     public ResponseEntity<ProductDto> increaseStock(@Valid @RequestBody IncreaseStockRequest request) {
         productService.increaseStockBySize(request.getSizeId(), request.getQuantity());
-        
+
         // Get product by finding the size first
         Product product = productService.findProductBySizeId(request.getSizeId());
-        
+
         if (product == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
-        
+
         ProductDto productDto = toDto(product);
         return ResponseEntity.status(HttpStatus.OK).body(productDto);
     }
 
-    //    {
-    //        "name": "Điện thoại iPhone 15 Pro",
-    //            "description": "Điện thoại cao cấp với chip A17 Bionic, màn hình 6.1 inch Super Retina XDR. Camera 48MP với zoom quang học 3x. Pin lithium-ion với MagSafe.",
-    //            "price": 28990000,
-    //            "originalPrice": 32990000,
-    //            "discountPercent": 12.1,
-    //            "categoryId": "1",
-    //            "sizes": [
-    //        {
-    //            "name": "128GB",
-    //                "description": "Bộ nhớ 128GB",
-    //                "stock": 50,
-    //                "priceModifier": 0
-    //        },
-    //        {
-    //            "name": "256GB",
-    //                "description": "Bộ nhớ 256GB",
-    //                "stock": 30,
-    //                "priceModifier": 4000000
-    //        },
-    //        {
-    //            "name": "512GB",
-    //                "description": "Bộ nhớ 512GB",
-    //                "stock": 20,
-    //                "priceModifier": 8000000
-    //        }
-    //  ]
-    //    }
+    // {
+    // "name": "Điện thoại iPhone 15 Pro",
+    // "description": "Điện thoại cao cấp với chip A17 Bionic, màn hình 6.1 inch
+    // Super Retina XDR. Camera 48MP với zoom quang học 3x. Pin lithium-ion với
+    // MagSafe.",
+    // "price": 28990000,
+    // "originalPrice": 32990000,
+    // "discountPercent": 12.1,
+    // "categoryId": "1",
+    // "sizes": [
+// {
+    // "name": "128GB",
+    // "description": "Bộ nhớ 128GB",
+    // "stock": 50,
+    // "priceModifier": 0
+    // },
+    // {
+    // "name": "256GB",
+    // "description": "Bộ nhớ 256GB",
+    // "stock": 30,
+    // "priceModifier": 4000000
+    // },
+    // {
+    // "name": "512GB",
+    // "description": "Bộ nhớ 512GB",
+    // "stock": 20,
+    // "priceModifier": 8000000
+    // }
+    // ]
+    // }
     @PostMapping("/create")
     ResponseEntity<ProductDto> createProduct(@Valid @RequestPart("request") ProductCreateRequest request,
-                                            @RequestPart(value = "file", required = false) MultipartFile[] files,
-                                            HttpServletRequest httpServletRequest) {
+                                             @RequestPart(value = "file", required = false) MultipartFile[] files,
+                                             HttpServletRequest httpServletRequest) {
         String userId = jwtUtil.ExtractUserId(httpServletRequest);
         request.setUserId(userId);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -102,8 +104,8 @@ public class ProductController {
 
     @PutMapping("/update")
     ResponseEntity<ProductDto> updateProduct(@Valid @RequestPart("request") ProductUpdateRequest request,
-                                            @RequestPart(value = "file", required = false) MultipartFile[] files,
-                                            HttpServletRequest httpServletRequest) {
+                                             @RequestPart(value = "file", required = false) MultipartFile[] files,
+                                             HttpServletRequest httpServletRequest) {
         String userId = jwtUtil.ExtractUserId(httpServletRequest);
         request.setUserId(userId);
         return ResponseEntity.status(HttpStatus.OK)
@@ -142,11 +144,10 @@ public class ProductController {
     }
 
     @GetMapping("/list")
-    ResponseEntity<List<ProductDto>> getAllProduct(){
+    ResponseEntity<List<ProductDto>> getAllProduct() {
         return ResponseEntity.ok(productService.getAllProducts().stream()
                 .map(this::toDto).toList());
     }
-
     @GetMapping("/listPageShopOwner")
     ResponseEntity<Page<ProductDto>> getAllProductsByShopOwner(
             HttpServletRequest httpServletRequest,
@@ -197,7 +198,19 @@ public class ProductController {
             }
         }
         dto.setTotalStock(total);
+
+        // Deserialize attributeJson
+        if (product.getAttributeJson() != null) {
+            try {
+                java.util.Map<String, String> attributes = objectMapper.readValue(product.getAttributeJson(),
+                        new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {
+                        });
+                dto.setAttributes(attributes);
+            } catch (Exception e) {
+                // Ignore parsing errors or log them
+            }
+        }
+
         return dto;
     }
 }
-

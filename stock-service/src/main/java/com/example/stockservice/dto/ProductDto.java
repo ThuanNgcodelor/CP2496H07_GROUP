@@ -23,4 +23,5 @@ public class ProductDto {
     private List<SizeDto> sizes;
     private Integer totalStock;
     private LocalDateTime createdAt;
+    private java.util.Map<String, String> attributes;
 }

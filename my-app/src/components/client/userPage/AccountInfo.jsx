@@ -33,42 +33,55 @@ export default function AccountInfo() {
     return raw.split("T")[0].split(" ")[0];
   };
 
+  const loadAvatar = async (me) => {
+    const imageId = me?.userDetails?.imageUrl ?? me?.imageUrl;
+    if (!imageId) {
+      setAvatarUrl("");
+      window.dispatchEvent(new CustomEvent("userAvatarUpdated", { detail: { avatarUrl: "", imageId: null } }));
+      return;
+    }
+    try {
+      const resp = await fetchImageById(imageId); // arraybuffer
+      const type = resp.headers?.["content-type"] || "image/jpeg";
+      const blob = new Blob([resp.data], { type });
+      const url = URL.createObjectURL(blob);
+      if (prevUrlRef.current) URL.revokeObjectURL(prevUrlRef.current);
+      prevUrlRef.current = url;
+      setAvatarUrl(url);
+      window.dispatchEvent(new CustomEvent("userAvatarUpdated", { detail: { avatarUrl: url, imageId } }));
+    } catch (e) {
+      console.error("Failed to fetch avatar", e);
+      setAvatarUrl("");
+      window.dispatchEvent(new CustomEvent("userAvatarUpdated", { detail: { avatarUrl: "", imageId: null } }));
+    }
+  };
+
+  const loadUserProfile = async () => {
+    try {
+      const me = await getUser();
+
+      setForm({
+        id: me?.id ?? "",
+        email: me?.email ?? "",
+        username: me?.username ?? "",
+        userDetails: {
+          firstName: me?.userDetails?.firstName ?? me?.firstName ?? "",
+          lastName: me?.userDetails?.lastName ?? me?.lastName ?? "",
+          phoneNumber: me?.userDetails?.phoneNumber ?? me?.phoneNumber ?? "",
+          gender: me?.userDetails?.gender ?? me?.gender ?? "MALE",
+          aboutMe: me?.userDetails?.aboutMe ?? me?.aboutMe ?? "",
+          birthDate: normalizeBirth(me?.userDetails?.birthDate ?? me?.birthDate),
+        },
+      });
+
+      await loadAvatar(me);
+    } catch (e) {
+      console.error("Failed to fetch user data", e);
+    }
+  };
+
   useEffect(() => {
-    (async () => {
-      try {
-        const me = await getUser();
-
-        setForm({
-          id: me?.id ?? "",
-          email: me?.email ?? "",
-          username: me?.username ?? "",
-          userDetails: {
-            firstName: me?.userDetails?.firstName ?? me?.firstName ?? "",
-            lastName: me?.userDetails?.lastName ?? me?.lastName ?? "",
-            phoneNumber: me?.userDetails?.phoneNumber ?? me?.phoneNumber ?? "",
-            gender: me?.userDetails?.gender ?? me?.gender ?? "MALE",
-            aboutMe: me?.userDetails?.aboutMe ?? me?.aboutMe ?? "",
-            birthDate: normalizeBirth(me?.userDetails?.birthDate ?? me?.birthDate),
-          },
-        });
-
-        // tải avatar hiện tại (nếu có)
-        const imageId = me?.userDetails?.imageUrl ?? me?.imageUrl;
-        if (imageId) {
-          const resp = await fetchImageById(imageId); // arraybuffer
-          const type = resp.headers?.["content-type"] || "image/jpeg";
-          const blob = new Blob([resp.data], { type });
-          const url = URL.createObjectURL(blob);
-          if (prevUrlRef.current) URL.revokeObjectURL(prevUrlRef.current);
-          prevUrlRef.current = url;
-          setAvatarUrl(url);
-        } else {
-          setAvatarUrl("");
-        }
-      } catch (e) {
-        console.error("Failed to fetch user data", e);
-      }
-    })();
+    loadUserProfile();
 
     return () => {
       if (prevUrlRef.current) URL.revokeObjectURL(prevUrlRef.current);
@@ -118,6 +131,7 @@ export default function AccountInfo() {
     if (prevUrlRef.current) URL.revokeObjectURL(prevUrlRef.current);
     prevUrlRef.current = previewUrl;
     setAvatarUrl(previewUrl);
+    window.dispatchEvent(new CustomEvent("userAvatarUpdated", { detail: { avatarUrl: previewUrl, imageId: null } }));
   };
 
   const onSubmit = async (e) => {
@@ -160,6 +174,8 @@ export default function AccountInfo() {
 
       console.log("Sending data:", formDataToSend);
       await updateUser(formDataToSend, file);
+      // after update, reload to get new image id & data
+      await loadUserProfile();
       setMsg("Profile updated successfully");
       setToast({ open: true, text: "Profile updated successfully" });
       setTimeout(() => setToast({ open: false, text: "" }), 1800);

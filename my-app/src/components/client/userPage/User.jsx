@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getUserRole, isAuthenticated, logout } from "../../../api/auth.js";
 import { getUser } from "../../../api/user.js";
@@ -8,12 +8,15 @@ import RoleRequestForm from "./RoleRequestForm.jsx";
 import OrderList from "./OrderList.jsx";
 import NotificationPage from "./NotificationPage.jsx";
 import Loading from "../Loading.jsx";
+import { fetchImageById } from "../../../api/image.js";
 
 export default function User() {
     const [, setUserInfo] = useState(null);
     const location = useLocation();
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [avatarUrl, setAvatarUrl] = useState("");
+    const avatarRef = useRef("");
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState("dashboard");
 
@@ -32,6 +35,24 @@ export default function User() {
                 setLoading(true);
                 const response = await getUser();
                 setUserData(response);
+                // load avatar if available
+                const imageId = response?.userDetails?.imageUrl || response?.imageUrl;
+                if (imageId) {
+                    try {
+                        const resp = await fetchImageById(imageId);
+                        const type = resp.headers?.["content-type"] || "image/jpeg";
+                        const blob = new Blob([resp.data], { type });
+                        const url = URL.createObjectURL(blob);
+                        if (avatarRef.current) URL.revokeObjectURL(avatarRef.current);
+                        avatarRef.current = url;
+                        setAvatarUrl(url);
+                    } catch (e) {
+                        console.error("Failed to load avatar", e);
+                        setAvatarUrl("");
+                    }
+                } else {
+                    setAvatarUrl("");
+                }
             } catch (error) {
                 console.error("Error fetching user info:", error);
             } finally {
@@ -40,6 +61,47 @@ export default function User() {
         };
 
         fetchUserInfo();
+        return () => {
+            if (avatarRef.current) {
+                URL.revokeObjectURL(avatarRef.current);
+                avatarRef.current = "";
+            }
+        };
+    }, []);
+
+    // Listen for avatar updates from AccountInfo
+    useEffect(() => {
+        const handleAvatarUpdated = async (event) => {
+            const detail = event?.detail || {};
+            const imageId = detail.imageId;
+            const urlFromDetail = detail.avatarUrl;
+
+            // If we get an imageId, refetch to ensure fresh blob
+            if (imageId) {
+                try {
+                    const resp = await fetchImageById(imageId);
+                    const type = resp.headers?.["content-type"] || "image/jpeg";
+                    const blob = new Blob([resp.data], { type });
+                    const url = URL.createObjectURL(blob);
+                    if (avatarRef.current) URL.revokeObjectURL(avatarRef.current);
+                    avatarRef.current = url;
+                    setAvatarUrl(url);
+                    return;
+                } catch (e) {
+                    console.error("Failed to refresh avatar from imageId", e);
+                }
+            }
+
+            // Fallback: use provided URL (object URL from AccountInfo)
+            if (urlFromDetail) {
+                if (avatarRef.current) URL.revokeObjectURL(avatarRef.current);
+                avatarRef.current = urlFromDetail;
+                setAvatarUrl(urlFromDetail);
+            }
+        };
+
+        window.addEventListener("userAvatarUpdated", handleAvatarUpdated);
+        return () => window.removeEventListener("userAvatarUpdated", handleAvatarUpdated);
     }, []);
 
     useEffect(() => {
@@ -70,20 +132,35 @@ export default function User() {
                             {/* User Profile */}
                             <div style={{ padding: '20px', borderBottom: '1px solid #f0f0f0' }}>
                                 <div className="d-flex align-items-center gap-3">
-                                    <div
-                                        style={{
-                                            width: '50px',
-                                            height: '50px',
-                                            borderRadius: '50%',
-                                            background: '#E8ECEF',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            flexShrink: 0
-                                        }}
-                                    >
-                                        <i className="fa fa-user" style={{ fontSize: '20px', color: '#666' }}></i>
-                                    </div>
+                                    {avatarUrl ? (
+                                        <img
+                                            src={avatarUrl}
+                                            alt="avatar"
+                                            style={{
+                                                width: '50px',
+                                                height: '50px',
+                                                borderRadius: '50%',
+                                                objectFit: 'cover',
+                                                flexShrink: 0,
+                                                border: '1px solid #e5e5e5'
+                                            }}
+                                        />
+                                    ) : (
+                                        <div
+                                            style={{
+                                                width: '50px',
+                                                height: '50px',
+                                                borderRadius: '50%',
+                                                background: '#E8ECEF',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                flexShrink: 0
+                                            }}
+                                        >
+                                            <i className="fa fa-user" style={{ fontSize: '20px', color: '#666' }}></i>
+                                        </div>
+                                    )}
                                     <div style={{ flex: 1 }}>
                                         <div style={{ fontSize: '14px', fontWeight: 500, color: '#222', marginBottom: '4px' }}>
                                             {userData?.username || 'User'}

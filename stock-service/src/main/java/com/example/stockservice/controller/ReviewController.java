@@ -1,0 +1,27 @@
+package com.example.stockservice.controller;
+
+import com.example.stockservice.dto.ReviewDto;
+import com.example.stockservice.request.ReviewRequest;
+import com.example.stockservice.service.ReviewService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/v1/stock/reviews")
+@RequiredArgsConstructor
+public class ReviewController {
+    private final ReviewService reviewService;
+
+    @PostMapping
+    public ResponseEntity<ReviewDto> createReview(@RequestBody ReviewRequest request) {
+        return ResponseEntity.ok(reviewService.createReview(request));
+    }
+
+    @GetMapping("/product/{productId}")
+    public ResponseEntity<List<ReviewDto>> getReviewsByProductId(@PathVariable String productId) {
+        return ResponseEntity.ok(reviewService.getReviewsByProductId(productId));
+    }
+}

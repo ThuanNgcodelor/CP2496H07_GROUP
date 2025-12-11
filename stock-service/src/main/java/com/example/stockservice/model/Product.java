@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Entity(name = "products")
 @Builder
@@ -24,18 +25,22 @@ public class Product extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private ProductStatus status;
     private String imageId; // Main image (backward compatibility)
-    
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "product_images", joinColumns = @JoinColumn(name = "product_id"))
     @Column(name = "image_id")
     private List<String> imageIds; // Multiple images/videos
-    
+
     private String userId;
-    
+
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "category_id")
     private Category category;
-    
+
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Size> sizes;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String attributeJson;
 }

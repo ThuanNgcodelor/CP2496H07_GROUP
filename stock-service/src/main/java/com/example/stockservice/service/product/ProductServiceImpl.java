@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import com.example.stockservice.model.Size;
 import com.example.stockservice.repository.SizeRepository;
@@ -30,16 +31,18 @@ public class ProductServiceImpl implements ProductService {
     private final FileStorageClient fileStorageClient;
     private final ModelMapper modelMapper;
     private final SizeRepository sizeRepository;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     @Override
     public void decreaseStockBySize(String sizeId, int quantity) {
         Size size = sizeRepository.findById(sizeId)
                 .orElseThrow(() -> new RuntimeException("Size not found with id: " + sizeId));
-        
+
         if (size.getStock() < quantity) {
-            throw new RuntimeException("Insufficient stock for size: " + size.getName() + ". Available: " + size.getStock() + ", Requested: " + quantity);
+            throw new RuntimeException("Insufficient stock for size: " + size.getName() + ". Available: "
+                    + size.getStock() + ", Requested: " + quantity);
         }
-        
+
         size.setStock(size.getStock() - quantity);
         sizeRepository.save(size);
     }
@@ -48,7 +51,7 @@ public class ProductServiceImpl implements ProductService {
     public void increaseStockBySize(String sizeId, int quantity) {
         Size size = sizeRepository.findById(sizeId)
                 .orElseThrow(() -> new RuntimeException("Size not found with id: " + sizeId));
-        
+
         size.setStock(size.getStock() + quantity);
         sizeRepository.save(size);
     }
@@ -64,7 +67,7 @@ public class ProductServiceImpl implements ProductService {
     public Product createProduct(ProductCreateRequest request, MultipartFile[] files) {
         String imageId = request.getImageId();
         List<String> imageIds = new ArrayList<>();
-        
+
         // Upload multiple files if provided
         if (files != null && files.length > 0) {
             for (MultipartFile file : files) {
@@ -84,7 +87,7 @@ public class ProductServiceImpl implements ProductService {
                 }
             }
         }
-        
+
         Product product = Product.builder()
                 .name(request.getName())
                 .description(request.getDescription())
@@ -94,15 +97,24 @@ public class ProductServiceImpl implements ProductService {
                 .status(ProductStatus.IN_STOCK)
                 .category(categoryService.findCategoryById(request.getCategoryId()))
                 .imageId(imageId)
-                .userId(request.getUserId())  
+                .userId(request.getUserId())
                 .build();
-        
+
+        if (request.getAttributes() != null) {
+            try {
+                String json = objectMapper.writeValueAsString(request.getAttributes());
+                product.setAttributeJson(json);
+            } catch (Exception e) {
+                // Handle
+            }
+        }
+
         if (!imageIds.isEmpty()) {
             product.setImageIds(imageIds);
         }
-        
+
         product = productRepository.save(product);
-        
+
         // CREATE SIZES if provided
         if (request.getSizes() != null && !request.getSizes().isEmpty()) {
             final Product savedProduct = product; // Final reference for lambda
@@ -119,13 +131,13 @@ public class ProductServiceImpl implements ProductService {
             sizeRepository.saveAll(sizes);
             product.setSizes(sizes);
         }
-        
+
         return product;
     }
 
     @Override
     public Product updateProduct(ProductUpdateRequest request, MultipartFile[] files) {
-       Product toUpdate = findProductById(request.getId());
+        Product toUpdate = findProductById(request.getId());
         if (request.getName() != null) {
             toUpdate.setName(request.getName());
         }
@@ -139,20 +151,29 @@ public class ProductServiceImpl implements ProductService {
             toUpdate.setOriginalPrice(request.getOriginalPrice());
         }
         toUpdate.setDiscountPercent(request.getDiscountPercent());
-        
+
         if (request.getCategoryId() != null) {
             toUpdate.setCategory(categoryService.findCategoryById(request.getCategoryId()));
         }
-        
+
         if (request.getStatus() != null) {
             toUpdate.setStatus(ProductStatus.valueOf(request.getStatus()));
         }
-        
+
+        if (request.getAttributes() != null) {
+            try {
+                String json = objectMapper.writeValueAsString(request.getAttributes());
+                toUpdate.setAttributeJson(json);
+            } catch (Exception e) {
+                // Handle
+            }
+        }
+
         // Upload new files if provided
         if (files != null && files.length > 0) {
             List<String> newImageIds = new ArrayList<>();
             String newMainImageId = null;
-            
+
             for (MultipartFile file : files) {
                 if (file != null && !file.isEmpty()) {
                     try {
@@ -168,7 +189,7 @@ public class ProductServiceImpl implements ProductService {
                     }
                 }
             }
-            
+
             if (!newImageIds.isEmpty()) {
                 // Delete old images if replacing
                 if (toUpdate.getImageIds() != null) {
@@ -187,20 +208,20 @@ public class ProductServiceImpl implements ProductService {
                         // Continue if deletion fails
                     }
                 }
-                
+
                 toUpdate.setImageIds(newImageIds);
                 if (newMainImageId != null) {
                     toUpdate.setImageId(newMainImageId);
                 }
             }
         }
-        
+
         if (request.getSizes() != null) {
             List<Size> managedSizes = toUpdate.getSizes();
             if (managedSizes != null) {
                 managedSizes.clear();
             }
-            
+
             if (!request.getSizes().isEmpty()) {
                 List<Size> newSizes = request.getSizes().stream()
                         .map(sizeRequest -> Size.builder()
@@ -218,7 +239,7 @@ public class ProductServiceImpl implements ProductService {
                 }
             }
         }
-        
+
         return productRepository.save(toUpdate);
     }
 
@@ -244,9 +265,9 @@ public class ProductServiceImpl implements ProductService {
         return productRepository.findAllByStatus(ProductStatus.IN_STOCK, pageable);
     }
 
-    protected Page<Product> fetchPageFromDB(String keyword, Integer pageNo, Integer pageSize ) {
-       List<Product> fullList = productRepository.searchProductByName(keyword);
-       Pageable pageable = PageRequest.of(pageNo -1, pageSize);
+    protected Page<Product> fetchPageFromDB(String keyword, Integer pageNo, Integer pageSize) {
+        List<Product> fullList = productRepository.searchProductByName(keyword);
+        Pageable pageable = PageRequest.of(pageNo - 1, pageSize);
         return getProductsPage(pageable, fullList);
     }
 
@@ -259,14 +280,14 @@ public class ProductServiceImpl implements ProductService {
     public List<Product> getAllProducts() {
         return productRepository.findAllWithSizes();
     }
-    
+
     public Page<Product> getProductsByUserId(String userId, Integer pageNo) {
         Pageable pageable = PageRequest.of(pageNo - 1, 10);
         List<Product> userProducts = productRepository.findByUserId(userId);
 
         return getProductsPage(pageable, userProducts);
     }
-    
+
     public List<Product> getAllProductsByUserId(String userId) {
         return productRepository.findByUserId(userId);
     }

@@ -15,5 +15,6 @@ public class ProductUpdateRequest {
     private String categoryId;
     private String userId;
     private String status;
-    private List<SizeRequest> sizes;  // ADD: Allow updating sizes
+    private List<SizeRequest> sizes; // ADD: Allow updating sizes
+    private java.util.Map<String, String> attributes;
 }

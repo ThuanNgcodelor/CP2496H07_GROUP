@@ -15,4 +15,5 @@ public class ProductCreateRequest {
     private String userId;
     private String imageId;
     private List<SizeRequest> sizes;
+    private java.util.Map<String, String> attributes;
 }
