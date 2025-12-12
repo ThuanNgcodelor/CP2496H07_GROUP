@@ -3,7 +3,6 @@ import React from "react";
 const formatVND = (n) => (Number(n) || 0).toLocaleString("vi-VN") + "₫";
 
 export function CheckoutSection({
-  cart,
   addresses,
   selectedAddressId,
   addressLoading,
@@ -15,7 +14,6 @@ export function CheckoutSection({
   selected,
   allChecked,
   orderLoading,
-  formatCurrency,
   onToggleAll,
   onOpenAddressModal,
   onRefreshAddresses,

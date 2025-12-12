@@ -68,7 +68,7 @@ public class Payment {
     private String returnUrl;
 
     @Lob
-    @Column(name = "raw_callback")
+    @Column(name = "raw_callback", columnDefinition = "TEXT")
     private String rawCallback;
 
     // Store order data temporarily before order is created

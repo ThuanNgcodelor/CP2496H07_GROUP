@@ -4,6 +4,7 @@ import com.example.orderservice.client.GhnApiClient;
 import com.example.orderservice.client.StockServiceClient;
 import com.example.orderservice.client.UserServiceClient;
 import com.example.orderservice.dto.*;
+import com.example.orderservice.dto.PaymentEvent;
 import com.example.orderservice.enums.OrderStatus;
 import com.example.orderservice.model.Order;
 import com.example.orderservice.model.OrderItem;
@@ -39,6 +40,17 @@ import org.springframework.http.ResponseEntity;
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
+    private final OrderRepository orderRepository;
+    private final StockServiceClient stockServiceClient;
+    private final UserServiceClient userServiceClient;
+    private final GhnApiClient ghnApiClient;
+    private final ShippingOrderRepository shippingOrderRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final NewTopic orderTopic;
+    private final NewTopic notificationTopic;
+    private final KafkaTemplate<String, CheckOutKafkaRequest> kafkaTemplate;
+    private final KafkaTemplate<String, SendNotificationRequest> kafkaTemplateSend;
+    private static final Logger log = LoggerFactory.getLogger(OrderServiceImpl.class);
 
     // Get data for shop owner orders
     @Override
@@ -68,18 +80,6 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.findByOrderItemsProductIdIn(productIds);
     }
 
-    private final OrderRepository orderRepository;
-    private final StockServiceClient stockServiceClient;
-    private final UserServiceClient userServiceClient;
-    private final GhnApiClient ghnApiClient;
-    private final ShippingOrderRepository shippingOrderRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    private final NewTopic orderTopic;
-    private final NewTopic notificationTopic;
-    private final KafkaTemplate<String, CheckOutKafkaRequest> kafkaTemplate;
-    private final KafkaTemplate<String, SendNotificationRequest> kafkaTemplateSend;
-    private static final Logger log = LoggerFactory.getLogger(OrderServiceImpl.class);
-
     @Override
     public Order cancelOrder(String orderId) {
         Order order = orderRepository.findById(orderId)
@@ -93,7 +93,6 @@ public class OrderServiceImpl implements OrderService {
         order.setOrderStatus(OrderStatus.CANCELLED);
         return orderRepository.save(order);
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////
     @Override
@@ -225,9 +224,15 @@ public class OrderServiceImpl implements OrderService {
                 throw new RuntimeException("Insufficient stock for product: " + product.getName()
                         + ", size: " + size.getName() + ". Available: " + size.getStock() + ", Requested: " + item.getQuantity());
             }
+
+            // Ensure unitPrice is populated (frontend payload may omit it for VNPay flow)
+            if (item.getUnitPrice() == null) {
+                double computedPrice = computeUnitPrice(product, size);
+                item.setUnitPrice(computedPrice);
+            }
         }
 
-        // Create order with PAID status (payment already succeeded)
+        // Create order with PAID status
         Order order = Order.builder()
                 .userId(userId)
                 .addressId(addressId)
@@ -352,6 +357,80 @@ public class OrderServiceImpl implements OrderService {
         } catch (Exception e) {
             log.error("[CONSUMER] Failed to create GHN shipping order: {}", e.getMessage(), e);
             // Don't throw - order is already created, just log the error
+        }
+    }
+
+    @KafkaListener(topics = "#{@paymentTopic.name}", groupId = "order-service-payment")
+    @Transactional
+    public void consumePaymentEvent(PaymentEvent event) {
+        log.info("[PAYMENT-CONSUMER] Received payment event: txnRef={}, status={}, orderId={}", 
+                event.getTxnRef(), event.getStatus(), event.getOrderId());
+
+        try {
+            if ("PAID".equals(event.getStatus())) {
+                // Payment successful
+                if (event.getOrderId() != null && !event.getOrderId().trim().isEmpty()) {
+                    // Order already exists - just update status to PAID
+                    Order order = orderRepository.findById(event.getOrderId())
+                            .orElse(null);
+                    if (order != null) {
+                        order.setOrderStatus(OrderStatus.PAID);
+                        orderRepository.save(order);
+                        log.info("[PAYMENT-CONSUMER] Updated existing order {} to PAID status", event.getOrderId());
+                    } else {
+                        log.warn("[PAYMENT-CONSUMER] Order {} not found for payment event", event.getOrderId());
+                    }
+                } else if (event.getUserId() != null && event.getAddressId() != null 
+                        && event.getOrderDataJson() != null && !event.getOrderDataJson().trim().isEmpty()) {
+                    // Order doesn't exist yet - create it from orderData
+                    try {
+                        // Parse orderDataJson to get selectedItems
+                        Map<String, Object> orderDataMap = objectMapper.readValue(event.getOrderDataJson(), Map.class);
+                        List<Map<String, Object>> selectedItemsList = (List<Map<String, Object>>) orderDataMap.get("selectedItems");
+                        
+                        if (selectedItemsList == null || selectedItemsList.isEmpty()) {
+                            log.error("[PAYMENT-CONSUMER] No selectedItems in orderData for payment: {}", event.getTxnRef());
+                            return;
+                        }
+
+                        // Convert to SelectedItemDto list
+                        List<SelectedItemDto> selectedItems = selectedItemsList.stream()
+                                .map(item -> {
+                                    SelectedItemDto dto = new SelectedItemDto();
+                                    dto.setProductId((String) item.get("productId"));
+                                    dto.setSizeId((String) item.get("sizeId"));
+                                    dto.setQuantity(((Number) item.get("quantity")).intValue());
+                                    return dto;
+                                })
+                                .collect(java.util.stream.Collectors.toList());
+
+                        // Create order with PAID status
+                        Order order = createOrderFromPayment(event.getUserId(), event.getAddressId(), selectedItems);
+                        log.info("[PAYMENT-CONSUMER] Created order {} from payment event: {}", order.getId(), event.getTxnRef());
+                    } catch (Exception e) {
+                        log.error("[PAYMENT-CONSUMER] Failed to create order from payment event: {}", e.getMessage(), e);
+                        // Note: Payment is already successful, but order creation failed
+                        // In production, you might want to implement retry mechanism or manual intervention
+                    }
+                } else {
+                    log.warn("[PAYMENT-CONSUMER] Payment successful but missing order data: txnRef={}", event.getTxnRef());
+                }
+            } else if ("FAILED".equals(event.getStatus())) {
+                // Payment failed - rollback if order exists
+                if (event.getOrderId() != null && !event.getOrderId().trim().isEmpty()) {
+                    try {
+                        rollbackOrderStock(event.getOrderId());
+                        log.info("[PAYMENT-CONSUMER] Rolled back order {} due to payment failure", event.getOrderId());
+                    } catch (Exception e) {
+                        log.error("[PAYMENT-CONSUMER] Failed to rollback order {}: {}", event.getOrderId(), e.getMessage(), e);
+                    }
+                } else {
+                    log.info("[PAYMENT-CONSUMER] Payment failed but no order was created, no rollback needed: txnRef={}", 
+                            event.getTxnRef());
+                }
+            }
+        } catch (Exception e) {
+            log.error("[PAYMENT-CONSUMER] Error processing payment event: {}", e.getMessage(), e);
         }
     }
     /////////////////////////////////////////////////////////////////////////////////////
@@ -513,6 +592,15 @@ public class OrderServiceImpl implements OrderService {
                             .build();
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Compute unit price from product base price and optional size price modifier.
+     */
+    private double computeUnitPrice(ProductDto product, SizeDto size) {
+        double base = product.getPrice();
+        double modifier = size != null ? size.getPriceModifier() : 0.0;
+        return base + modifier;
     }
 
     private void cleanupCartItemsBySelected(String userId, List<SelectedItemDto> selectedItems) {
@@ -777,7 +865,7 @@ public class OrderServiceImpl implements OrderService {
             GhnCreateOrderResponse ghnResponse = ghnApiClient.createOrder(ghnRequest);
             
             if (ghnResponse == null || ghnResponse.getCode() != 200) {
-                log.error("[GHN] ❌ GHN API returned error!");
+                log.error("[GHN] GHN API returned error!");
                 log.error("[GHN] Code: {}, Message: {}", 
                     ghnResponse != null ? ghnResponse.getCode() : "null",
                     ghnResponse != null ? ghnResponse.getMessage() : "null");
@@ -799,15 +887,15 @@ public class OrderServiceImpl implements OrderService {
                 .build();
             
             shippingOrderRepository.save(shippingOrder);
-            
-            log.info("[GHN] ✅ SUCCESS!");
+
+            log.info("[GHN] SUCCESS!");
             log.info("[GHN] GHN Order Code: {}", ghnResponse.getData().getOrderCode());
             log.info("[GHN] Shipping Fee: {} VNĐ", ghnResponse.getData().getTotalFee());
             log.info("[GHN] Expected Delivery: {}", ghnResponse.getData().getExpectedDeliveryTime());
             log.info("[GHN] ===============================================");
-            
+
         } catch (Exception e) {
-            log.error("[GHN] ❌ Exception occurred: {}", e.getMessage(), e);
+            log.error("[GHN] Exception occurred: {}", e.getMessage(), e);
             log.error("[GHN] Order creation continues, but shipping order failed");
             // Không throw exception để không làm fail order creation
         }

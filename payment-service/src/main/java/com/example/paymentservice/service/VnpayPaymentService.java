@@ -1,8 +1,8 @@
 package com.example.paymentservice.service;
 
-import com.example.paymentservice.client.OrderServiceClient;
 import com.example.paymentservice.config.VnpayProperties;
 import com.example.paymentservice.dto.CreateVnpayPaymentRequest;
+import com.example.paymentservice.dto.PaymentEvent;
 import com.example.paymentservice.dto.PaymentUrlResponse;
 import com.example.paymentservice.enums.PaymentMethod;
 import com.example.paymentservice.enums.PaymentStatus;
@@ -13,11 +13,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.*;
 
 @Service
@@ -27,8 +30,11 @@ public class VnpayPaymentService {
 
     private final VnpayProperties props;
     private final PaymentRepository paymentRepository;
-    private final OrderServiceClient orderServiceClient;
+    private final KafkaTemplate<String, PaymentEvent> kafkaTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    
+    @Value("${kafka.topic.payment}")
+    private String paymentTopic;
 
     public PaymentUrlResponse createPayment(CreateVnpayPaymentRequest req, HttpServletRequest servletRequest) {
         long amountVnd = req.getAmount();
@@ -117,49 +123,45 @@ public class VnpayPaymentService {
         payment.setGatewayTxnNo(gatewayTxnNo);
         payment.setBankCode(bankCode);
         payment.setCardType(cardType);
-        payment.setRawCallback(params.toString());
+        
+        // Store raw callback as JSON string (more readable and compact)
+        try {
+            String rawCallbackJson = objectMapper.writeValueAsString(params);
+            payment.setRawCallback(rawCallbackJson);
+        } catch (Exception e) {
+            // Fallback to toString if JSON conversion fails
+            log.warn("[PAYMENT] Failed to convert params to JSON, using toString: {}", e.getMessage());
+            payment.setRawCallback(params.toString());
+        }
+        
         paymentRepository.save(payment);
 
-        if (success) {
-            // If order already exists, just update status
-            if (payment.getOrderId() != null && !payment.getOrderId().trim().isEmpty()) {
-                try {
-                    orderServiceClient.updatePaymentStatus(payment.getOrderId(), "PAID");
-                    log.info("[PAYMENT] Updated existing order {} status to PAID", payment.getOrderId());
-                } catch (Exception e) {
-                    log.error("[PAYMENT] Failed to update order status for orderId: {}", payment.getOrderId(), e);
-                }
-            } 
-            // If order doesn't exist yet, create it from orderData
-            else if (payment.getOrderData() != null && !payment.getOrderData().trim().isEmpty()) {
-                try {
-                    Map<String, Object> orderDataMap = objectMapper.readValue(payment.getOrderData(), Map.class);
-                    Object orderResult = orderServiceClient.createOrderFromPayment(orderDataMap);
-                    if (orderResult instanceof Map) {
-                        Map<String, Object> resultMap = (Map<String, Object>) orderResult;
-                        String orderId = (String) resultMap.get("orderId");
-                        if (orderId != null) {
-                            payment.setOrderId(orderId);
-                            paymentRepository.save(payment);
-                            log.info("[PAYMENT] Created order {} from payment data", orderId);
-                        }
-                    }
-                } catch (Exception e) {
-                    log.error("[PAYMENT] Failed to create order from payment data: {}", e.getMessage(), e);
-                    // Don't fail payment processing, but log error
-                }
-            }
-        } else {
-            // Payment failed - rollback if order exists
-            if (payment.getOrderId() != null && !payment.getOrderId().trim().isEmpty()) {
-                try {
-                    orderServiceClient.updatePaymentStatus(payment.getOrderId(), "FAILED");
-                    log.info("[PAYMENT] Updated order {} payment status to FAILED", payment.getOrderId());
-                } catch (Exception e) {
-                    log.error("[PAYMENT] Failed to update order status for orderId: {}", payment.getOrderId(), e);
-                }
-            }
-            // If no order was created, just log - no rollback needed
+        // Publish payment event to Kafka for order-service to consume
+        try {
+            PaymentEvent event = PaymentEvent.builder()
+                    .paymentId(payment.getId())
+                    .txnRef(payment.getTxnRef())
+                    .orderId(payment.getOrderId())
+                    .status(payment.getStatus().name())
+                    .amount(payment.getAmount())
+                    .currency(payment.getCurrency())
+                    .method(payment.getMethod().name())
+                    .bankCode(payment.getBankCode())
+                    .cardType(payment.getCardType())
+                    .gatewayTxnNo(payment.getGatewayTxnNo())
+                    .responseCode(payment.getResponseCode())
+                    .userId(extractUserIdFromOrderData(payment.getOrderData()))
+                    .addressId(extractAddressIdFromOrderData(payment.getOrderData()))
+                    .orderDataJson(payment.getOrderData())
+                    .timestamp(Instant.now())
+                    .build();
+
+            kafkaTemplate.send(paymentTopic, payment.getTxnRef(), event);
+            log.info("[PAYMENT] Published payment event to Kafka: txnRef={}, status={}", 
+                    payment.getTxnRef(), payment.getStatus());
+        } catch (Exception e) {
+            log.error("[PAYMENT] Failed to publish payment event to Kafka: {}", e.getMessage(), e);
+            // Don't fail payment processing, but log error
         }
 
         return payment.getStatus();
@@ -192,5 +194,47 @@ public class VnpayPaymentService {
             return ip.split(",")[0].trim();
         }
         return request.getRemoteAddr();
+    }
+
+    private String extractUserIdFromOrderData(String orderDataJson) {
+        if (orderDataJson == null || orderDataJson.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            // OrderData format: {"userId": "...", "addressId": "...", "selectedItems": [...]}
+            // Simple extraction without full JSON parsing
+            if (orderDataJson.contains("\"userId\"")) {
+                int start = orderDataJson.indexOf("\"userId\"") + 9;
+                int end = orderDataJson.indexOf(",", start);
+                if (end == -1) end = orderDataJson.indexOf("}", start);
+                if (end > start) {
+                    String value = orderDataJson.substring(start, end).trim();
+                    return value.replace("\"", "").replace(":", "").trim();
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[PAYMENT] Failed to extract userId from orderData: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    private String extractAddressIdFromOrderData(String orderDataJson) {
+        if (orderDataJson == null || orderDataJson.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            if (orderDataJson.contains("\"addressId\"")) {
+                int start = orderDataJson.indexOf("\"addressId\"") + 12;
+                int end = orderDataJson.indexOf(",", start);
+                if (end == -1) end = orderDataJson.indexOf("}", start);
+                if (end > start) {
+                    String value = orderDataJson.substring(start, end).trim();
+                    return value.replace("\"", "").replace(":", "").trim();
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[PAYMENT] Failed to extract addressId from orderData: {}", e.getMessage());
+        }
+        return null;
     }
 }

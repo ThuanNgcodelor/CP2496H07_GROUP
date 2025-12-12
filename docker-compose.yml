@@ -35,9 +35,11 @@ services:
       KAFKA_BROKER_ID: "1"
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
 
-      # 2 listener: nội bộ & ngoài máy
+      # 2 listener: nội bộ (PLAINTEXT) & ngoài máy (EXTERNAL)
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:9094
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,EXTERNAL://localhost:9094
+      # PLAINTEXT cho các container trong network Docker (Kafka UI)
+      # EXTERNAL cho client trên host
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
 
@@ -58,6 +60,7 @@ services:
     depends_on: [kafka]
     environment:
       KAFKA_CLUSTERS_0_NAME: local
+      # Kafka UI dùng listener PLAINTEXT trong network Docker
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
     ports:
