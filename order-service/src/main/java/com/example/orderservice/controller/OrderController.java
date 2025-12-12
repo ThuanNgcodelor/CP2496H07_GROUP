@@ -153,24 +153,21 @@ public class OrderController {
     @PostMapping("/create-from-cart")
     ResponseEntity<?> createOrderFromCart(@RequestBody FrontendOrderRequest request, HttpServletRequest httpRequest) {
         try {
-            // If VNPay payment, create order synchronously to get orderId
             String paymentMethod = request.getPaymentMethod();
+            // Only COD uses this endpoint; VNPay/Card should go through payment-service
             if ("VNPAY".equalsIgnoreCase(paymentMethod) || "CARD".equalsIgnoreCase(paymentMethod)) {
-                Order order = orderService.createOrderSync(request, httpRequest);
-                return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                        "message", "Order created successfully.",
-                        "status", "PENDING",
-                        "orderId", order.getId(),
-                        "id", order.getId()
-                ));
-            } else {
-                // COD - use async Kafka
-                orderService.orderByKafka(request, httpRequest);
-                return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                        "message", "Order has been sent to Kafka.",
-                        "status", "PENDING"
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                        "error", "USE_PAYMENT_SERVICE",
+                        "message", "For VNPay/Card, please initiate via payment-service."
                 ));
             }
+
+            // COD - use async Kafka
+            orderService.orderByKafka(request, httpRequest);
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                    "message", "Order has been sent to Kafka.",
+                    "status", "PENDING"
+            ));
         } catch (RuntimeException e) {
             if (e.getMessage().contains("Insufficient stock")) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(

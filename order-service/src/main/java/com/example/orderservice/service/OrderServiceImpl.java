@@ -94,346 +94,6 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.save(order);
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////
-    @Override
-    @Transactional
-    public void orderByKafka(FrontendOrderRequest orderRequest, HttpServletRequest request){
-        String author = request.getHeader("Authorization");
-        CartDto cartDto = stockServiceClient.getCart(author).getBody();
-        AddressDto address = userServiceClient.getAddressById(orderRequest.getAddressId()).getBody();
-        if (address == null)
-            throw new RuntimeException("Address not found for ID: " + orderRequest.getAddressId());
-        if(cartDto == null || cartDto.getItems().isEmpty())
-            throw new RuntimeException("Cart not found or empty");
-
-        for (SelectedItemDto item : orderRequest.getSelectedItems()) {
-            if (item.getSizeId() == null || item.getSizeId().isBlank()) {
-                throw new RuntimeException("Size ID is required for product: " + item.getProductId());
-            }
-            
-            ProductDto product = stockServiceClient.getProductById(item.getProductId()).getBody();
-            if (product == null) {
-                throw new RuntimeException("Product not found for ID: " + item.getProductId());
-            }
-            
-            SizeDto size = stockServiceClient.getSizeById(item.getSizeId()).getBody();
-            if (size == null) {
-                throw new RuntimeException("Size not found for ID: " + item.getSizeId());
-            }
-            
-            if (size.getStock() < item.getQuantity()) {
-                throw new RuntimeException("Insufficient stock for product: " + product.getName()
-                        + ", size: " + size.getName() + ". Available: " + size.getStock() + ", Requested: " + item.getQuantity());
-            }
-        }
-
-        CheckOutKafkaRequest kafkaRequest = CheckOutKafkaRequest.builder()
-                .userId(cartDto.getUserId())
-                .addressId(orderRequest.getAddressId())
-                .cartId(cartDto.getId())
-                .selectedItems(orderRequest.getSelectedItems())
-                .build();
-
-        kafkaTemplate.send(orderTopic.name(), kafkaRequest);
-    }
-
-    @Override
-    @Transactional
-    public Order createOrderSync(FrontendOrderRequest orderRequest, HttpServletRequest request) {
-        String author = request.getHeader("Authorization");
-        CartDto cartDto = stockServiceClient.getCart(author).getBody();
-        AddressDto address = userServiceClient.getAddressById(orderRequest.getAddressId()).getBody();
-        if (address == null)
-            throw new RuntimeException("Address not found for ID: " + orderRequest.getAddressId());
-        if(cartDto == null || cartDto.getItems().isEmpty())
-            throw new RuntimeException("Cart not found or empty");
-
-        // Validate stock
-        for (SelectedItemDto item : orderRequest.getSelectedItems()) {
-            if (item.getSizeId() == null || item.getSizeId().isBlank()) {
-                throw new RuntimeException("Size ID is required for product: " + item.getProductId());
-            }
-            
-            ProductDto product = stockServiceClient.getProductById(item.getProductId()).getBody();
-            if (product == null) {
-                throw new RuntimeException("Product not found for ID: " + item.getProductId());
-            }
-            
-            SizeDto size = stockServiceClient.getSizeById(item.getSizeId()).getBody();
-            if (size == null) {
-                throw new RuntimeException("Size not found for ID: " + item.getSizeId());
-            }
-            
-            if (size.getStock() < item.getQuantity()) {
-                throw new RuntimeException("Insufficient stock for product: " + product.getName()
-                        + ", size: " + size.getName() + ". Available: " + size.getStock() + ", Requested: " + item.getQuantity());
-            }
-        }
-
-        // Create order synchronously
-        Order order = initPendingOrder(cartDto.getUserId(), orderRequest.getAddressId());
-        List<OrderItem> items = toOrderItemsFromSelected(orderRequest.getSelectedItems(), order);
-        order.setOrderItems(items);
-        order.setTotalPrice(calculateTotalPrice(items));
-        orderRepository.save(order);
-
-        // Cleanup cart
-        try {
-            cleanupCartItemsBySelected(cartDto.getUserId(), orderRequest.getSelectedItems());
-        } catch (Exception e) {
-            log.error("[SYNC] cart cleanup failed: {}", e.getMessage(), e);
-        }
-
-        // Send notifications async (non-blocking)
-        try {
-            notifyOrderPlaced(order);
-            notifyShopOwners(order);
-        } catch (Exception e) {
-            log.error("[SYNC] send notification failed: {}", e.getMessage(), e);
-        }
-
-        return order;
-    }
-
-    @Override
-    @Transactional
-    public Order createOrderFromPayment(String userId, String addressId, List<SelectedItemDto> selectedItems) {
-        // Validate address
-        AddressDto address = userServiceClient.getAddressById(addressId).getBody();
-        if (address == null) {
-            throw new RuntimeException("Address not found for ID: " + addressId);
-        }
-
-        // Validate stock
-        for (SelectedItemDto item : selectedItems) {
-            if (item.getSizeId() == null || item.getSizeId().isBlank()) {
-                throw new RuntimeException("Size ID is required for product: " + item.getProductId());
-            }
-            
-            ProductDto product = stockServiceClient.getProductById(item.getProductId()).getBody();
-            if (product == null) {
-                throw new RuntimeException("Product not found for ID: " + item.getProductId());
-            }
-            
-            SizeDto size = stockServiceClient.getSizeById(item.getSizeId()).getBody();
-            if (size == null) {
-                throw new RuntimeException("Size not found for ID: " + item.getSizeId());
-            }
-            
-            if (size.getStock() < item.getQuantity()) {
-                throw new RuntimeException("Insufficient stock for product: " + product.getName()
-                        + ", size: " + size.getName() + ". Available: " + size.getStock() + ", Requested: " + item.getQuantity());
-            }
-
-            // Ensure unitPrice is populated (frontend payload may omit it for VNPay flow)
-            if (item.getUnitPrice() == null) {
-                double computedPrice = computeUnitPrice(product, size);
-                item.setUnitPrice(computedPrice);
-            }
-        }
-
-        // Create order with PAID status
-        Order order = Order.builder()
-                .userId(userId)
-                .addressId(addressId)
-                .orderStatus(OrderStatus.PAID) // Already paid
-                .totalPrice(0.0)
-                .build();
-        order = orderRepository.save(order);
-
-        // Add items and decrease stock
-        List<OrderItem> items = toOrderItemsFromSelected(selectedItems, order);
-        order.setOrderItems(items);
-        order.setTotalPrice(calculateTotalPrice(items));
-        orderRepository.save(order);
-
-        // Cleanup cart
-        try {
-            cleanupCartItemsBySelected(userId, selectedItems);
-        } catch (Exception e) {
-            log.error("[PAYMENT-ORDER] cart cleanup failed: {}", e.getMessage(), e);
-        }
-
-        // Send notifications
-        try {
-            notifyOrderPlaced(order);
-            notifyShopOwners(order);
-        } catch (Exception e) {
-            log.error("[PAYMENT-ORDER] send notification failed: {}", e.getMessage(), e);
-        }
-
-        return order;
-    }
-
-    @KafkaListener(topics = "#{@orderTopic.name}", groupId = "order-service-checkout")
-    @Transactional
-    public void consumeCheckout(CheckOutKafkaRequest msg) {
-        if (msg.getAddressId() == null || msg.getAddressId().isBlank()) {
-            throw new RuntimeException("addressId is required in message");
-        }
-        if (msg.getSelectedItems() == null || msg.getSelectedItems().isEmpty()) {
-            return;
-        }
-        try {
-            for (SelectedItemDto item : msg.getSelectedItems()) {
-                if (item.getSizeId() == null || item.getSizeId().isBlank()) {
-                    throw new RuntimeException("Size ID is required for product: " + item.getProductId());
-                }
-                
-                ProductDto product = stockServiceClient.getProductById(item.getProductId()).getBody();
-                if (product == null) {
-                    log.error("[CONSUMER] Product not found: {}", item.getProductId());
-                    throw new RuntimeException("Product not found for ID: " + item.getProductId());
-                }
-                
-                SizeDto size = stockServiceClient.getSizeById(item.getSizeId()).getBody();
-                if (size == null) {
-                    log.error("[CONSUMER] Size not found: {}", item.getSizeId());
-                    throw new RuntimeException("Size not found for ID: " + item.getSizeId());
-                }
-                
-                if (size.getStock() < item.getQuantity()) {
-                    log.error("[CONSUMER] Insufficient stock for product {} size {}. Available: {}, Requested: {}",
-                            item.getProductId(), size.getName(), size.getStock(), item.getQuantity());
-                    throw new RuntimeException("Insufficient stock for product: " + product.getName()
-                            + ", size: " + size.getName() + ". Available: " + size.getStock() + ", Requested: " + item.getQuantity());
-                }
-            }
-        } catch (Exception e) {
-            try {
-                // Since 1 user = 1 shop, set both userId and shopId to msg.getUserId()
-                // This is a notification for the user (order failed), not shop owner
-                SendNotificationRequest failNotification = SendNotificationRequest.builder()
-                        .userId(msg.getUserId())
-                        .shopId(msg.getUserId())
-                        .orderId(null)
-                        .message("Order creation failed: " + e.getMessage())
-                        .isShopOwnerNotification(false) // false = user notification
-                        .build();
-//                kafkaTemplateSend.send(notificationTopic.name(), failNotification);
-
-                String partitionKey = failNotification.getUserId() != null
-                        ? failNotification.getUserId()
-                        : failNotification.getShopId();
-                kafkaTemplateSend.send(notificationTopic.name(), partitionKey, failNotification);
-            } catch (Exception notifEx) {
-                log.error("[CONSUMER] Failed to send failure notification: {}", notifEx.getMessage(), notifEx);
-            }
-            throw e;
-        }
-
-        // 1) Create order skeleton
-        Order order = initPendingOrder(msg.getUserId(), msg.getAddressId());
-
-        // 2) Items + decrease stock
-        List<OrderItem> items = toOrderItemsFromSelected(msg.getSelectedItems(), order);
-        order.setOrderItems(items);
-        order.setTotalPrice(calculateTotalPrice(items));
-        orderRepository.save(order);
-
-        // 3) Cleanup cart - remove items that were added to order
-        try {
-            if (msg.getSelectedItems() != null && !msg.getSelectedItems().isEmpty()) {
-                log.info("[CONSUMER] Starting cart cleanup for userId: {}, items count: {}", 
-                    msg.getUserId(), msg.getSelectedItems().size());
-                cleanupCartItemsBySelected(msg.getUserId(), msg.getSelectedItems());
-            } else {
-                log.warn("[CONSUMER] selectedItems is null or empty -> skip cart cleanup");
-            }
-        } catch (Exception e) {
-            log.error("[CONSUMER] cart cleanup failed: {}", e.getMessage(), e);
-        }
-
-        try {
-            notifyOrderPlaced(order);
-            notifyShopOwners(order);
-        } catch (Exception e) {
-            log.error("[CONSUMER] send notification failed: {}", e.getMessage(), e);
-        }
-
-        // 4) Create GHN shipping order
-        try {
-            createShippingOrder(order);
-        } catch (Exception e) {
-            log.error("[CONSUMER] Failed to create GHN shipping order: {}", e.getMessage(), e);
-            // Don't throw - order is already created, just log the error
-        }
-    }
-
-    @KafkaListener(topics = "#{@paymentTopic.name}", groupId = "order-service-payment")
-    @Transactional
-    public void consumePaymentEvent(PaymentEvent event) {
-        log.info("[PAYMENT-CONSUMER] Received payment event: txnRef={}, status={}, orderId={}", 
-                event.getTxnRef(), event.getStatus(), event.getOrderId());
-
-        try {
-            if ("PAID".equals(event.getStatus())) {
-                // Payment successful
-                if (event.getOrderId() != null && !event.getOrderId().trim().isEmpty()) {
-                    // Order already exists - just update status to PAID
-                    Order order = orderRepository.findById(event.getOrderId())
-                            .orElse(null);
-                    if (order != null) {
-                        order.setOrderStatus(OrderStatus.PAID);
-                        orderRepository.save(order);
-                        log.info("[PAYMENT-CONSUMER] Updated existing order {} to PAID status", event.getOrderId());
-                    } else {
-                        log.warn("[PAYMENT-CONSUMER] Order {} not found for payment event", event.getOrderId());
-                    }
-                } else if (event.getUserId() != null && event.getAddressId() != null 
-                        && event.getOrderDataJson() != null && !event.getOrderDataJson().trim().isEmpty()) {
-                    // Order doesn't exist yet - create it from orderData
-                    try {
-                        // Parse orderDataJson to get selectedItems
-                        Map<String, Object> orderDataMap = objectMapper.readValue(event.getOrderDataJson(), Map.class);
-                        List<Map<String, Object>> selectedItemsList = (List<Map<String, Object>>) orderDataMap.get("selectedItems");
-                        
-                        if (selectedItemsList == null || selectedItemsList.isEmpty()) {
-                            log.error("[PAYMENT-CONSUMER] No selectedItems in orderData for payment: {}", event.getTxnRef());
-                            return;
-                        }
-
-                        // Convert to SelectedItemDto list
-                        List<SelectedItemDto> selectedItems = selectedItemsList.stream()
-                                .map(item -> {
-                                    SelectedItemDto dto = new SelectedItemDto();
-                                    dto.setProductId((String) item.get("productId"));
-                                    dto.setSizeId((String) item.get("sizeId"));
-                                    dto.setQuantity(((Number) item.get("quantity")).intValue());
-                                    return dto;
-                                })
-                                .collect(java.util.stream.Collectors.toList());
-
-                        // Create order with PAID status
-                        Order order = createOrderFromPayment(event.getUserId(), event.getAddressId(), selectedItems);
-                        log.info("[PAYMENT-CONSUMER] Created order {} from payment event: {}", order.getId(), event.getTxnRef());
-                    } catch (Exception e) {
-                        log.error("[PAYMENT-CONSUMER] Failed to create order from payment event: {}", e.getMessage(), e);
-                        // Note: Payment is already successful, but order creation failed
-                        // In production, you might want to implement retry mechanism or manual intervention
-                    }
-                } else {
-                    log.warn("[PAYMENT-CONSUMER] Payment successful but missing order data: txnRef={}", event.getTxnRef());
-                }
-            } else if ("FAILED".equals(event.getStatus())) {
-                // Payment failed - rollback if order exists
-                if (event.getOrderId() != null && !event.getOrderId().trim().isEmpty()) {
-                    try {
-                        rollbackOrderStock(event.getOrderId());
-                        log.info("[PAYMENT-CONSUMER] Rolled back order {} due to payment failure", event.getOrderId());
-                    } catch (Exception e) {
-                        log.error("[PAYMENT-CONSUMER] Failed to rollback order {}: {}", event.getOrderId(), e.getMessage(), e);
-                    }
-                } else {
-                    log.info("[PAYMENT-CONSUMER] Payment failed but no order was created, no rollback needed: txnRef={}", 
-                            event.getTxnRef());
-                }
-            }
-        } catch (Exception e) {
-            log.error("[PAYMENT-CONSUMER] Error processing payment event: {}", e.getMessage(), e);
-        }
-    }
-    /////////////////////////////////////////////////////////////////////////////////////
 
     protected double calculateTotalPrice(List<OrderItem> orderItems) {
         return orderItems.stream()
@@ -927,4 +587,287 @@ public class OrderServiceImpl implements OrderService {
             return "{}";
         }
     }
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    @Override
+    @Transactional
+    public void orderByKafka(FrontendOrderRequest orderRequest, HttpServletRequest request){
+        String author = request.getHeader("Authorization");
+        CartDto cartDto = stockServiceClient.getCart(author).getBody();
+        AddressDto address = userServiceClient.getAddressById(orderRequest.getAddressId()).getBody();
+        if (address == null)
+            throw new RuntimeException("Address not found for ID: " + orderRequest.getAddressId());
+        if(cartDto == null || cartDto.getItems().isEmpty())
+            throw new RuntimeException("Cart not found or empty");
+
+        for (SelectedItemDto item : orderRequest.getSelectedItems()) {
+            if (item.getSizeId() == null || item.getSizeId().isBlank()) {
+                throw new RuntimeException("Size ID is required for product: " + item.getProductId());
+            }
+
+            ProductDto product = stockServiceClient.getProductById(item.getProductId()).getBody();
+            if (product == null) {
+                throw new RuntimeException("Product not found for ID: " + item.getProductId());
+            }
+
+            SizeDto size = stockServiceClient.getSizeById(item.getSizeId()).getBody();
+            if (size == null) {
+                throw new RuntimeException("Size not found for ID: " + item.getSizeId());
+            }
+
+            if (size.getStock() < item.getQuantity()) {
+                throw new RuntimeException("Insufficient stock for product: " + product.getName()
+                        + ", size: " + size.getName() + ". Available: " + size.getStock() + ", Requested: " + item.getQuantity());
+            }
+        }
+
+        CheckOutKafkaRequest kafkaRequest = CheckOutKafkaRequest.builder()
+                .userId(cartDto.getUserId())
+                .addressId(orderRequest.getAddressId())
+                .cartId(cartDto.getId())
+                .selectedItems(orderRequest.getSelectedItems())
+                .build();
+
+        kafkaTemplate.send(orderTopic.name(), kafkaRequest);
+    }
+
+    @Override
+    @Transactional
+    public Order createOrderFromPayment(String userId, String addressId, List<SelectedItemDto> selectedItems) {
+        // Validate address
+        AddressDto address = userServiceClient.getAddressById(addressId).getBody();
+        if (address == null) {
+            throw new RuntimeException("Address not found for ID: " + addressId);
+        }
+
+        // Validate stock
+        for (SelectedItemDto item : selectedItems) {
+            if (item.getSizeId() == null || item.getSizeId().isBlank()) {
+                throw new RuntimeException("Size ID is required for product: " + item.getProductId());
+            }
+
+            ProductDto product = stockServiceClient.getProductById(item.getProductId()).getBody();
+            if (product == null) {
+                throw new RuntimeException("Product not found for ID: " + item.getProductId());
+            }
+
+            SizeDto size = stockServiceClient.getSizeById(item.getSizeId()).getBody();
+            if (size == null) {
+                throw new RuntimeException("Size not found for ID: " + item.getSizeId());
+            }
+
+            if (size.getStock() < item.getQuantity()) {
+                throw new RuntimeException("Insufficient stock for product: " + product.getName()
+                        + ", size: " + size.getName() + ". Available: " + size.getStock() + ", Requested: " + item.getQuantity());
+            }
+
+            // Ensure unitPrice is populated (frontend payload may omit it for VNPay flow)
+            if (item.getUnitPrice() == null) {
+                double computedPrice = computeUnitPrice(product, size);
+                item.setUnitPrice(computedPrice);
+            }
+        }
+
+        // Create order with PAID status
+        Order order = Order.builder()
+                .userId(userId)
+                .addressId(addressId)
+                .orderStatus(OrderStatus.PAID) // Already paid
+                .totalPrice(0.0)
+                .build();
+        order = orderRepository.save(order);
+
+        // Add items and decrease stock
+        List<OrderItem> items = toOrderItemsFromSelected(selectedItems, order);
+        order.setOrderItems(items);
+        order.setTotalPrice(calculateTotalPrice(items));
+        orderRepository.save(order);
+
+        // Cleanup cart
+        try {
+            cleanupCartItemsBySelected(userId, selectedItems);
+        } catch (Exception e) {
+            log.error("[PAYMENT-ORDER] cart cleanup failed: {}", e.getMessage(), e);
+        }
+
+        // Send notifications
+        try {
+            notifyOrderPlaced(order);
+            notifyShopOwners(order);
+        } catch (Exception e) {
+            log.error("[PAYMENT-ORDER] send notification failed: {}", e.getMessage(), e);
+        }
+
+        return order;
+    }
+
+    @KafkaListener(topics = "#{@orderTopic.name}", groupId = "order-service-checkout")
+    @Transactional
+    public void consumeCheckout(CheckOutKafkaRequest msg) {
+        if (msg.getAddressId() == null || msg.getAddressId().isBlank()) {
+            throw new RuntimeException("addressId is required in message");
+        }
+        if (msg.getSelectedItems() == null || msg.getSelectedItems().isEmpty()) {
+            return;
+        }
+        try {
+            for (SelectedItemDto item : msg.getSelectedItems()) {
+                if (item.getSizeId() == null || item.getSizeId().isBlank()) {
+                    throw new RuntimeException("Size ID is required for product: " + item.getProductId());
+                }
+
+                ProductDto product = stockServiceClient.getProductById(item.getProductId()).getBody();
+                if (product == null) {
+                    log.error("[CONSUMER] Product not found: {}", item.getProductId());
+                    throw new RuntimeException("Product not found for ID: " + item.getProductId());
+                }
+
+                SizeDto size = stockServiceClient.getSizeById(item.getSizeId()).getBody();
+                if (size == null) {
+                    log.error("[CONSUMER] Size not found: {}", item.getSizeId());
+                    throw new RuntimeException("Size not found for ID: " + item.getSizeId());
+                }
+
+                if (size.getStock() < item.getQuantity()) {
+                    log.error("[CONSUMER] Insufficient stock for product {} size {}. Available: {}, Requested: {}",
+                            item.getProductId(), size.getName(), size.getStock(), item.getQuantity());
+                    throw new RuntimeException("Insufficient stock for product: " + product.getName()
+                            + ", size: " + size.getName() + ". Available: " + size.getStock() + ", Requested: " + item.getQuantity());
+                }
+            }
+        } catch (Exception e) {
+            try {
+                // Since 1 user = 1 shop, set both userId and shopId to msg.getUserId()
+                // This is a notification for the user (order failed), not shop owner
+                SendNotificationRequest failNotification = SendNotificationRequest.builder()
+                        .userId(msg.getUserId())
+                        .shopId(msg.getUserId())
+                        .orderId(null)
+                        .message("Order creation failed: " + e.getMessage())
+                        .isShopOwnerNotification(false) // false = user notification
+                        .build();
+//                kafkaTemplateSend.send(notificationTopic.name(), failNotification);
+
+                String partitionKey = failNotification.getUserId() != null
+                        ? failNotification.getUserId()
+                        : failNotification.getShopId();
+                kafkaTemplateSend.send(notificationTopic.name(), partitionKey, failNotification);
+            } catch (Exception notifEx) {
+                log.error("[CONSUMER] Failed to send failure notification: {}", notifEx.getMessage(), notifEx);
+            }
+            throw e;
+        }
+
+        // 1) Create order skeleton
+        Order order = initPendingOrder(msg.getUserId(), msg.getAddressId());
+
+        // 2) Items + decrease stock
+        List<OrderItem> items = toOrderItemsFromSelected(msg.getSelectedItems(), order);
+        order.setOrderItems(items);
+        order.setTotalPrice(calculateTotalPrice(items));
+        orderRepository.save(order);
+
+        // 3) Cleanup cart - remove items that were added to order
+        try {
+            if (msg.getSelectedItems() != null && !msg.getSelectedItems().isEmpty()) {
+                log.info("[CONSUMER] Starting cart cleanup for userId: {}, items count: {}",
+                        msg.getUserId(), msg.getSelectedItems().size());
+                cleanupCartItemsBySelected(msg.getUserId(), msg.getSelectedItems());
+            } else {
+                log.warn("[CONSUMER] selectedItems is null or empty -> skip cart cleanup");
+            }
+        } catch (Exception e) {
+            log.error("[CONSUMER] cart cleanup failed: {}", e.getMessage(), e);
+        }
+
+        try {
+            notifyOrderPlaced(order);
+            notifyShopOwners(order);
+        } catch (Exception e) {
+            log.error("[CONSUMER] send notification failed: {}", e.getMessage(), e);
+        }
+
+        // 4) Create GHN shipping order
+        try {
+            createShippingOrder(order);
+        } catch (Exception e) {
+            log.error("[CONSUMER] Failed to create GHN shipping order: {}", e.getMessage(), e);
+            // Don't throw - order is already created, just log the error
+        }
+    }
+
+    @KafkaListener(topics = "#{@paymentTopic.name}", groupId = "order-service-payment")
+    @Transactional
+    public void consumePaymentEvent(PaymentEvent event) {
+        log.info("[PAYMENT-CONSUMER] Received payment event: txnRef={}, status={}, orderId={}",
+                event.getTxnRef(), event.getStatus(), event.getOrderId());
+
+        try {
+            if ("PAID".equals(event.getStatus())) {
+                // Payment successful
+                if (event.getOrderId() != null && !event.getOrderId().trim().isEmpty()) {
+                    // Order already exists - just update status to PAID
+                    Order order = orderRepository.findById(event.getOrderId())
+                            .orElse(null);
+                    if (order != null) {
+                        order.setOrderStatus(OrderStatus.PAID);
+                        orderRepository.save(order);
+                        log.info("[PAYMENT-CONSUMER] Updated existing order {} to PAID status", event.getOrderId());
+                    } else {
+                        log.warn("[PAYMENT-CONSUMER] Order {} not found for payment event", event.getOrderId());
+                    }
+                } else if (event.getUserId() != null && event.getAddressId() != null
+                        && event.getOrderDataJson() != null && !event.getOrderDataJson().trim().isEmpty()) {
+                    // Order doesn't exist yet - create it from orderData
+                    try {
+                        // Parse orderDataJson to get selectedItems
+                        Map<String, Object> orderDataMap = objectMapper.readValue(event.getOrderDataJson(), Map.class);
+                        List<Map<String, Object>> selectedItemsList = (List<Map<String, Object>>) orderDataMap.get("selectedItems");
+
+                        if (selectedItemsList == null || selectedItemsList.isEmpty()) {
+                            log.error("[PAYMENT-CONSUMER] No selectedItems in orderData for payment: {}", event.getTxnRef());
+                            return;
+                        }
+
+                        // Convert to SelectedItemDto list
+                        List<SelectedItemDto> selectedItems = selectedItemsList.stream()
+                                .map(item -> {
+                                    SelectedItemDto dto = new SelectedItemDto();
+                                    dto.setProductId((String) item.get("productId"));
+                                    dto.setSizeId((String) item.get("sizeId"));
+                                    dto.setQuantity(((Number) item.get("quantity")).intValue());
+                                    return dto;
+                                })
+                                .collect(java.util.stream.Collectors.toList());
+
+                        // Create order with PAID status
+                        Order order = createOrderFromPayment(event.getUserId(), event.getAddressId(), selectedItems);
+                        log.info("[PAYMENT-CONSUMER] Created order {} from payment event: {}", order.getId(), event.getTxnRef());
+                    } catch (Exception e) {
+                        log.error("[PAYMENT-CONSUMER] Failed to create order from payment event: {}", e.getMessage(), e);
+                        // Note: Payment is already successful, but order creation failed
+                        // In production, you might want to implement retry mechanism or manual intervention
+                    }
+                } else {
+                    log.warn("[PAYMENT-CONSUMER] Payment successful but missing order data: txnRef={}", event.getTxnRef());
+                }
+            } else if ("FAILED".equals(event.getStatus())) {
+                // Payment failed - rollback if order exists
+                if (event.getOrderId() != null && !event.getOrderId().trim().isEmpty()) {
+                    try {
+                        rollbackOrderStock(event.getOrderId());
+                        log.info("[PAYMENT-CONSUMER] Rolled back order {} due to payment failure", event.getOrderId());
+                    } catch (Exception e) {
+                        log.error("[PAYMENT-CONSUMER] Failed to rollback order {}: {}", event.getOrderId(), e.getMessage(), e);
+                    }
+                } else {
+                    log.info("[PAYMENT-CONSUMER] Payment failed but no order was created, no rollback needed: txnRef={}",
+                            event.getTxnRef());
+                }
+            }
+        } catch (Exception e) {
+            log.error("[PAYMENT-CONSUMER] Error processing payment event: {}", e.getMessage(), e);
+        }
+    }
+    /////////////////////////////////////////////////////////////////////////////////////
 }

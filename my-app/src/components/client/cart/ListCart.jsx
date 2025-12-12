@@ -28,7 +28,7 @@ export function Cart() {
   const [orderLoading, setOrderLoading] = useState(false);
   const [addressLoading, setAddressLoading] = useState(false);
 
-  const [orderSuccess, setOrderSuccess] = useState(false);
+  const [, setOrderSuccess] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [orderReceipt, setOrderReceipt] = useState(null);
 
